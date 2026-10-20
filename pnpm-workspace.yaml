@@ -6,10 +6,13 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@cloudflare/vite-plugin": ^1.64.0
   "@types/node": ^24
+  hono: ^4.13.13
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@1.3.0
   vite-plus: 1.3.0
+  wrangler: ^4.151.1
 overrides:
   vite@*: "catalog:"
 peerDependencyRules:
@@ -17,3 +20,6 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
+allowBuilds:
+  esbuild: true
+  workerd: true

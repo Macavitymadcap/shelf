@@ -1,11 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es2023",
+    "target": "esnext",
     "module": "esnext",
-    "lib": ["ES2023", "DOM"],
-    "types": ["vite/client"],
+    "lib": ["ESNext"],
+    "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -20,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "worker-configuration.d.ts"]
 }
