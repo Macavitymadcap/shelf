@@ -1,13 +1,14 @@
 {
   "name": "shelf-infra",
+  "private": true,
   "main": "index.ts",
   "dependencies": {
     "@pulumi/cloudflare": "^6.23.1",
     "@pulumi/pulumi": "^3.113.0"
   },
   "devDependencies": {
-    "@types/node": "^18",
+    "@types/node": "catalog:",
     "jsonc-parser": "^3.3.1",
-    "typescript": "^5.0.0"
+    "typescript": "catalog:"
   }
 }

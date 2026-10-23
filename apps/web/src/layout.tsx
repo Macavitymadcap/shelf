@@ -12,8 +12,8 @@ export const Layout: FC<LayoutProps> = ({ title, children }) => (
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
-        <link rel="stylesheet" href="https://unpkg.com/open-props" />
-        <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css" />
+        <link rel="stylesheet" href="vendor/open-props.min.css" />
+        <link rel="stylesheet" href="vendor/normalize.min.css" />
       </head>
       <body>
         <main>{children}</main>

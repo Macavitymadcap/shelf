@@ -8,10 +8,11 @@ catalogMode: prefer
 catalog:
   '@cloudflare/vite-plugin': ^1.64.0
   '@shelf/catalogue': workspace:*
-  '@types/node': ^24
+  '@types/node': ^26.5.5
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   hono: ^4.13.13
+  open-props: ^1.7.23
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
