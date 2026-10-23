@@ -9,7 +9,8 @@
     "preview": "vp preview",
     "cf-typegen": "wrangler types",
     "test": "vp test run",
-    "migrate:local": "vp exec wrangler d1 migrations apply DB --local"
+    "migrate": "vp exec wrangler d1 migrations apply DB",
+    "deploy": "vp build && wrangler deploy"
   },
   "dependencies": {
     "hono": "catalog:"
