@@ -1,0 +1,16 @@
+{
+  "name": "shelf",
+  "main": "./src/index.tsx",
+  "compatibility_date": "2026-10-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shelf",
+      "database_id": "84bf6105-2ef0-4abf-88e0-556767684760",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "COVERS", "bucket_name": "shelf-covers" }],
+}

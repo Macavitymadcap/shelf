@@ -1,0 +1,4 @@
+config:
+  shelf-infra:accountId: c01d233219d9c96a581afc6e72bc00c8
+  cloudflare:apiToken:
+    secure: AAABAA9f4YMoWluu6xHVn3OuptwpK9ZOeIV1Fw5LEwmTXLPqUm+ENNVOUTedT4h6kx5IUXGYzFc1OCe+rVWUZyqHbNu7SA1DwwIAoaqAvRyUiWiw2w==
