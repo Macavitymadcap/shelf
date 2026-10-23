@@ -5,7 +5,7 @@ import { applyEdits, modify } from 'jsonc-parser';
 const path = 'apps/web/wrangler.jsonc';
 const args = ['stack', 'output', '--json', '--stack', 'prod', '--cwd', 'infra'];
 const outputs = JSON.parse(execFileSync('pulumi', args, { encoding: 'utf8' }));
-const format = { formattingOptions: { tabs: 2, insertSpaces: true } };
+const format = { formattingOptions: { tabSize: 2, insertSpaces: true } };
 
 const set = (text: string, at: (string | number)[], value: unknown) =>
   applyEdits(text, modify(text, at, value, format));

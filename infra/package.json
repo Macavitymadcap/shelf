@@ -1,5 +1,6 @@
 {
   "name": "shelf-infra",
+  "private": true,
   "main": "index.ts",
   "dependencies": {
     "@pulumi/cloudflare": "^6.23.1",
