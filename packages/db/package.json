@@ -6,7 +6,6 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vp test run --passWithNoTests",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
