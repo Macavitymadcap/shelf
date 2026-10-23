@@ -1,3 +1,1 @@
-export function fn() {
-  return "Hello, Vite+!";
-}
+export { KINDS, type Kind } from './kinds.ts';

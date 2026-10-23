@@ -1,3 +1,1 @@
-export function fn() {
-  return "Hello, Vite+!";
-}
+export * from './schema/index.ts';

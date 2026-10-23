@@ -1,6 +1,6 @@
-# vite-plus-starter
+# db
 
-A starter for creating a Vite Plus project.
+The database layer of `shelf`, built in SQLite with drizzle.
 
 ## Development
 

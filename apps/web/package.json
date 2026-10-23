@@ -8,7 +8,8 @@
     "build": "tsc && vp build",
     "preview": "vp preview",
     "cf-typegen": "wrangler types",
-    "test": "vp test run"
+    "test": "vp test run",
+    "migrate:local": "vp exec wrangler d1 migrations apply DB --local"
   },
   "dependencies": {
     "hono": "catalog:"

@@ -1,12 +1,12 @@
 // apps/web/src/layout.tsx
-import type { FC, PropsWithChildren } from "hono/jsx";
-import { raw } from "hono/html";
+import type { FC, PropsWithChildren } from 'hono/jsx';
+import { raw } from 'hono/html';
 
 type LayoutProps = PropsWithChildren<{ title: string }>;
 
 export const Layout: FC<LayoutProps> = ({ title, children }) => (
   <>
-    {raw("<!doctype html>")}
+    {raw('<!doctype html>')}
     <html lang="en-GB">
       <head>
         <meta charset="utf-8" />
