@@ -192,12 +192,15 @@ Then:
 
 ```bash
 # from the repo root
+rm -rf node_modules apps/*/node_modules packages/*/node_modules infra/node_modules
 vp install
-ls node_modules/.pnpm | grep '^vite-plus@'
+for d in . apps/web packages/*; do echo "$d -> $(readlink $d/node_modules/vite-plus)"; done
 ```
 
-The `ls` should print exactly one line containing `@types+node@26.6.5`. If
-it prints two, a package still names its own `@types/node`.
+pnpm keeps old versions in `node_modules/.pnpm` after they stop being used,
+so the reinstall clears them first. Every line of the loop's output should
+end in the same `vite-plus@1.4.0_…@types+node@26.6.5…` folder. If one
+differs, that package still names its own `@types/node`.
 
 ```bash
 git commit -am "fix: take @types/node and typescript from the catalog"
@@ -2047,22 +2050,22 @@ phone's address and your username for 15 minutes.
 
 ## Troubleshooting
 
-| Symptom                                                                   | Cause                                                                                 | Fix                                                                    |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `vp run dev` prints nothing and exits                                     | Root script names `website#dev`                                                       | A1                                                                     |
-| `Cannot read properties of undefined (reading 'config')` in package tests | Two `@types/node` versions, so two copies of Vite+                                    | A2; check `ls node_modules/.pnpm \| grep '^vite-plus@'` shows one line |
-| `ENOTEMPTY … .vitest-cache`                                               | Parallel test runs clearing the cache after an install                                | Run the tests again                                                    |
-| `TS2769: No overload matches this call` at `importKey`                    | Plain `Uint8Array` passed to Web Crypto                                               | Use the `Bytes` type from B4                                           |
-| `no-base-to-string` warning in the login route                            | `String()` on a form value                                                            | Use the `text()` helper from B8                                        |
-| `ERR_PNPM_IGNORED_BUILDS` after `vp add`                                  | A new dependency has an install script                                                | `vp pm approve-builds`; approve only tools you recognise               |
-| `PASSWORD_PEPPER is not set` from the script                              | No `.dev.vars` (local) or no variable (remote)                                        | B2 for local; the `PASSWORD_PEPPER=…` prefix in B11 for remote         |
-| Every local sign-in says "Incorrect…"                                     | The user was hashed with a different pepper, or `.dev.vars` changed after creating it | Delete the user with `wrangler d1 execute` and run the script again    |
-| "Too many failed attempts" locally                                        | All local requests share `ip:unknown`                                                 | Clear `login_attempts` (B10)                                           |
-| No cookie after signing in locally                                        | Safari refuses `Secure` cookies on `http://localhost`                                 | Use Chrome                                                             |
-| `Forbidden` (403) on a form post                                          | `csrf()` saw an `Origin` from another site                                            | Open the app on the same host it posts to                              |
-| 500 on sign-in in production only                                         | The Worker has no `PASSWORD_PEPPER`                                                   | `vp exec wrangler secret list`; repeat B2's `secret put`               |
-| "Error 1102" on sign-in                                                   | Hashing exceeds the CPU limit                                                         | Lower `ITERATIONS` (B1) and recreate users                             |
-| `fetch failed` or certificate errors from Wrangler                        | VPN inspecting HTTPS                                                                  | `export NODE_OPTIONS=--use-system-ca`                                  |
+| Symptom                                                                   | Cause                                                                                 | Fix                                                                 |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `vp run dev` prints nothing and exits                                     | Root script names `website#dev`                                                       | A1                                                                  |
+| `Cannot read properties of undefined (reading 'config')` in package tests | Two `@types/node` versions, so two copies of Vite+                                    | A2, including the reinstall and the `readlink` check                |
+| `ENOTEMPTY … .vitest-cache`                                               | Parallel test runs clearing the cache after an install                                | Run the tests again                                                 |
+| `TS2769: No overload matches this call` at `importKey`                    | Plain `Uint8Array` passed to Web Crypto                                               | Use the `Bytes` type from B4                                        |
+| `no-base-to-string` warning in the login route                            | `String()` on a form value                                                            | Use the `text()` helper from B8                                     |
+| `ERR_PNPM_IGNORED_BUILDS` after `vp add`                                  | A new dependency has an install script                                                | `vp pm approve-builds`; approve only tools you recognise            |
+| `PASSWORD_PEPPER is not set` from the script                              | No `.dev.vars` (local) or no variable (remote)                                        | B2 for local; the `PASSWORD_PEPPER=…` prefix in B11 for remote      |
+| Every local sign-in says "Incorrect…"                                     | The user was hashed with a different pepper, or `.dev.vars` changed after creating it | Delete the user with `wrangler d1 execute` and run the script again |
+| "Too many failed attempts" locally                                        | All local requests share `ip:unknown`                                                 | Clear `login_attempts` (B10)                                        |
+| No cookie after signing in locally                                        | Safari refuses `Secure` cookies on `http://localhost`                                 | Use Chrome                                                          |
+| `Forbidden` (403) on a form post                                          | `csrf()` saw an `Origin` from another site                                            | Open the app on the same host it posts to                           |
+| 500 on sign-in in production only                                         | The Worker has no `PASSWORD_PEPPER`                                                   | `vp exec wrangler secret list`; repeat B2's `secret put`            |
+| "Error 1102" on sign-in                                                   | Hashing exceeds the CPU limit                                                         | Lower `ITERATIONS` (B1) and recreate users                          |
+| `fetch failed` or certificate errors from Wrangler                        | VPN inspecting HTTPS                                                                  | `export NODE_OPTIONS=--use-system-ca`                               |
 
 ## What milestone 2 builds on
 

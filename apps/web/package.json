@@ -18,7 +18,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "catalog:",
     "@types/node": "catalog:",
-    "typescript": "~7.0.2",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "wrangler": "catalog:"

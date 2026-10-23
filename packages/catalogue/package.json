@@ -6,9 +6,8 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
-    "bumpp": "^12.3.0",
-    "typescript": "^7.0.2",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
     "vite-plus": "catalog:"
   }
 }
