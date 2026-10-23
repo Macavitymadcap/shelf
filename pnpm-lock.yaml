@@ -241,10 +241,10 @@ importers:
     dependencies:
       '@pulumi/cloudflare':
         specifier: ^6.23.1
-        version: 6.23.1(supports-color@10.2.2)(typescript@7.0.2)
+        version: 6.23.1(supports-color@10.2.2)(typescript@5.9.3)
       '@pulumi/pulumi':
         specifier: ^3.113.0
-        version: 3.271.0(supports-color@10.2.2)(typescript@7.0.2)
+        version: 3.271.0(supports-color@10.2.2)(typescript@5.9.3)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -253,8 +253,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/catalogue:
     devDependencies:
@@ -2869,6 +2869,11 @@ packages:
     resolution: {integrity: sha512-50QV99kCKH5P/Vs4E2Gzp7BopNV+KzTXqWeaxrfu5IQJBOULRsTIS9seSsOVT8ZnGXzCyx55nYWAi4qJzpZKEQ==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -3926,15 +3931,15 @@ snapshots:
 
   '@protobufjs/utf8@1.1.2': {}
 
-  '@pulumi/cloudflare@6.23.1(supports-color@10.2.2)(typescript@7.0.2)':
+  '@pulumi/cloudflare@6.23.1(supports-color@10.2.2)(typescript@5.9.3)':
     dependencies:
-      '@pulumi/pulumi': 3.271.0(supports-color@10.2.2)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.271.0(supports-color@10.2.2)(typescript@5.9.3)
     transitivePeerDependencies:
       - supports-color
       - ts-node
       - typescript
 
-  '@pulumi/pulumi@3.271.0(supports-color@10.2.2)(typescript@7.0.2)':
+  '@pulumi/pulumi@3.271.0(supports-color@10.2.2)(typescript@5.9.3)':
     dependencies:
       '@grpc/grpc-js': 1.14.6
       '@logdna/tail-file': 2.2.0
@@ -3962,7 +3967,7 @@ snapshots:
       source-map-support: 0.5.21
       upath: 1.2.0
     optionalDependencies:
-      typescript: 7.0.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
 
@@ -5225,6 +5230,8 @@ snapshots:
       make-fetch-happen: 15.0.6(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
+
+  typescript@5.9.3: {}
 
   typescript@7.0.2:
     optionalDependencies:
