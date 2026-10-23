@@ -8,7 +8,7 @@
     {
       "binding": "DB",
       "database_name": "shelf",
-      "database_id": "local",
+      "database_id": "84bf6105-2ef0-4abf-88e0-556767684760",
       "migrations_dir": "../../packages/db/migrations",
     },
   ],
