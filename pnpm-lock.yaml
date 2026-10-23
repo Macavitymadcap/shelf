@@ -167,6 +167,9 @@ catalogs:
     '@cloudflare/vite-plugin':
       specifier: ^1.64.0
       version: 1.64.0
+    '@shelf/auth':
+      specifier: workspace:*
+      version: workspace:*
     '@shelf/catalogue':
       specifier: workspace:*
       version: workspace:*
@@ -214,6 +217,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@shelf/auth':
+        specifier: 'catalog:'
+        version: link:../../packages/auth
+      '@shelf/db':
+        specifier: 'catalog:'
+        version: link:../../packages/db
       hono:
         specifier: 'catalog:'
         version: 4.13.13

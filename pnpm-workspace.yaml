@@ -7,6 +7,7 @@ catalogMode: prefer
 
 catalog:
   '@cloudflare/vite-plugin': ^1.64.0
+  '@shelf/auth': workspace:*
   '@shelf/catalogue': workspace:*
   '@shelf/db': workspace:*
   '@types/node': ^26.5.5

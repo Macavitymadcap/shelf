@@ -1,10 +1,19 @@
-// apps/web/src/layout.tsx
 import type { FC, PropsWithChildren } from 'hono/jsx';
 import { raw } from 'hono/html';
+import type { SessionUser } from '@shelf/auth';
 
-type LayoutProps = PropsWithChildren<{ title: string }>;
+type LayoutProps = PropsWithChildren<{ title: string; user: SessionUser | null }>;
 
-export const Layout: FC<LayoutProps> = ({ title, children }) => (
+const Nav: FC<{ user: SessionUser | null }> = ({ user }) =>
+  user ? (
+    <form method="post" action="/logout">
+      <a href="/manage">{user.displayName}</a> <button type="submit">Sign out</button>
+    </form>
+  ) : (
+    <a href="/login">Sign in</a>
+  );
+
+export const Layout: FC<LayoutProps> = ({ title, user, children }) => (
   <>
     {raw('<!doctype html>')}
     <html lang="en-GB">
@@ -16,6 +25,10 @@ export const Layout: FC<LayoutProps> = ({ title, children }) => (
         <link rel="stylesheet" href="vendor/normalize.min.css" />
       </head>
       <body>
+        <header>
+          <a href="/">Shelf</a>
+          <Nav user={user} />
+        </header>
         <main>{children}</main>
       </body>
     </html>
