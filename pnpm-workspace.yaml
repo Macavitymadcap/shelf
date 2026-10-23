@@ -8,6 +8,7 @@ catalogMode: prefer
 catalog:
   '@cloudflare/vite-plugin': ^1.64.0
   '@shelf/catalogue': workspace:*
+  '@shelf/db': workspace:*
   '@types/node': ^26.5.5
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4

@@ -170,6 +170,9 @@ catalogs:
     '@shelf/catalogue':
       specifier: workspace:*
       version: workspace:*
+    '@shelf/db':
+      specifier: workspace:*
+      version: workspace:*
     '@types/node':
       specifier: ^26.5.5
       version: 26.6.5
@@ -255,6 +258,28 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/auth:
+    dependencies:
+      '@shelf/db':
+        specifier: 'catalog:'
+        version: link:../db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@opentelemetry/api@1.10.0)
+      hono:
+        specifier: 'catalog:'
+        version: 4.13.13
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.4.0(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/ui@5.0.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1)
 
   packages/catalogue:
     devDependencies:
