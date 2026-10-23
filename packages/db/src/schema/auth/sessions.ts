@@ -1,13 +1,11 @@
 import { sqliteTable, text, integer, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { users } from './users.ts';
-import { id, timestamps } from '../columns.ts';
-
-const DAY = 24 * 60 * 60 * 1000;
+import { timestamps } from '../columns.ts';
 
 export const sessions = sqliteTable(
   'sessions',
   {
-    ...id,
+    id: text().primaryKey(),
     userId: text()
       .notNull()
       .references((): AnySQLiteColumn => users.id, { onDelete: 'cascade' }),
@@ -19,5 +17,3 @@ export const sessions = sqliteTable(
   },
   (t) => [index('sessions_user_id').on(t.userId)],
 );
-
-export const isStale = (lastSeenAt: Date, now: Date) => now.getTime() - lastSeenAt.getTime() > DAY;

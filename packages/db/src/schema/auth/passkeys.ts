@@ -7,12 +7,12 @@ import {
   type AnySQLiteColumn,
 } from 'drizzle-orm/sqlite-core';
 import { users } from './users.ts';
-import { id, timestamps } from '../columns.ts';
+import { timestamps } from '../columns.ts';
 
 export const passkeys = sqliteTable(
   'passkeys',
   {
-    ...id,
+    id: text().primaryKey(),
     userId: text()
       .notNull()
       .references((): AnySQLiteColumn => users.id, { onDelete: 'cascade' }),

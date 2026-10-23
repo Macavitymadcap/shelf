@@ -5,6 +5,7 @@ export * from './loans.ts';
 export * from './people.ts';
 export * from './credits.ts';
 export * from './tags.ts';
+export * from './work-tags.ts';
 export * from './kinds/books.ts';
 export * from './kinds/records.ts';
 export * from './kinds/games.ts';
