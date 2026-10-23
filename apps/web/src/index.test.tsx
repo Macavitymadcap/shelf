@@ -11,6 +11,8 @@ describe('GET /', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('<h1>Shelf</h1>');
+    expect(await response.text()).toContain(
+      '<h1>Shelf: A catalogue of books, games and records</h1>',
+    );
   });
 });
