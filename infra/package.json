@@ -1,0 +1,12 @@
+{
+  "name": "shelf-infra",
+  "main": "index.ts",
+  "dependencies": {
+    "@pulumi/cloudflare": "^6.23.1",
+    "@pulumi/pulumi": "^3.113.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  }
+}
