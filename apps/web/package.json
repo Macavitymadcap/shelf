@@ -10,7 +10,8 @@
     "cf-typegen": "wrangler types",
     "test": "vp test run",
     "migrate": "vp exec wrangler d1 migrations apply DB",
-    "deploy": "vp build && wrangler deploy"
+    "deploy": "vp build && wrangler deploy",
+    "vendor": "mkdir -p public/vendor && cp node_modules/open-props/open-props.min.css node_modules/open-props/normalize.min.css public/vendor/"
   },
   "dependencies": {
     "hono": "catalog:"
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "catalog:",
     "@types/node": "catalog:",
+    "open-props": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

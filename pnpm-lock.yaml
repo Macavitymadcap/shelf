@@ -182,6 +182,9 @@ catalogs:
     hono:
       specifier: ^4.13.13
       version: 4.13.13
+    open-props:
+      specifier: ^1.7.23
+      version: 1.7.23
     typescript:
       specifier: ^7.0.2
       version: 7.0.2
@@ -218,6 +221,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5
+      open-props:
+        specifier: 'catalog:'
+        version: 1.7.23
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2592,6 +2598,9 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
+  open-props@1.7.23:
+    resolution: {integrity: sha512-+xyrJmxV9QUBFbSwPROYhOg/FLXry+uuPr4R+B5EaE4556Oc18/8ZC/fL5A+/lbRSwNvA0Alh+C0KpyFWLmLZg==}
+
   oxfmt@0.74.0:
     resolution: {integrity: sha512-G4OP7FgwGYZR5ttRpCOOfJdyRsSyvtn34vSXnjDq6Oqed5Dufg5mB44mank+51nAdHOKuTJ0lj0mksY7L+N61A==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -4883,6 +4892,8 @@ snapshots:
   onetime@5.1.2:
     dependencies:
       mimic-fn: 2.1.0
+
+  open-props@1.7.23: {}
 
   oxfmt@0.74.0(vite-plus@1.4.0(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/ui@5.0.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1)):
     dependencies:
