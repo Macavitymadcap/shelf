@@ -1,7 +1,7 @@
 packages:
   - apps/*
   - packages/*
-  - tools/*
+  - infra
 
 catalogMode: prefer
 
@@ -25,6 +25,7 @@ peerDependencyRules:
     vite: '*'
 allowBuilds:
   esbuild: true
+  protobufjs: false
   workerd: true
 minimumReleaseAgeExclude:
   - '@voidzero-dev/vite-plus-core@1.4.0'
