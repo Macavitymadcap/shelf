@@ -313,5 +313,3 @@ Check the `setup-vp` and `pulumi/actions` READMEs for their current major versio
 ## The gate
 
 Change the `<h1>`, push to `main`, and watch the deploy job publish it. Before moving on, check two of the risks from the plan: does the Cloudflare plugin behave under `vp dev` and `vp build`, and does `vp test` run cleanly? If either fights you, that's the point to fall back to plain Vite for `apps/web` only.
-
-I can add this to the plan as a "Foundations runbook" tab if you'd like it alongside the rest.
