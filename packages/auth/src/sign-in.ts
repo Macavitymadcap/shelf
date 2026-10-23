@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { users, type Db } from '@shelf/db';
 import { DUMMY_HASH, verifyPassword } from './password.ts';
 import { isLocked, pruneAttempts, recordFailure, throttleKeys } from './throttle.ts';
-import { createSession } from './session.ts';
+import { createSession } from './sessions.ts';
 
 export type Credentials = { username: string; password: string; ip: string };
 

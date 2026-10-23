@@ -4,7 +4,7 @@ import { createTestDb } from '@shelf/db';
 import { hashPassword } from '../src/password.ts';
 import { signIn } from '../src/sign-in.ts';
 import { MAX_FAILURES } from '../src/throttle.ts';
-import { findSession } from '../src/session.ts';
+import { findSession } from '../src/sessions.ts';
 
 const PEPPER = 'test-pepper';
 const PASSWORD = 'correct horse battery staple';

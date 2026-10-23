@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 import { users } from '@shelf/db';
 import { createTestDb } from '@shelf/db';
-import { createSession, SESSION_DAYS, findSession, deleteSession } from '../src/session.ts';
+import { createSession, SESSION_DAYS, findSession, deleteSession } from '../src/sessions.ts';
 
 type TestDb = Awaited<ReturnType<typeof createTestDb>>;
 
