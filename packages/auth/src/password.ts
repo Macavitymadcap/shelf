@@ -2,7 +2,7 @@ import { constantTimeEqual, fromBase64Url, randomBytes, toBase64Url, utf8 } from
 
 const ALGORITHM = 'pbkdf2_sha256';
 
-export const ITERATIONS = 100_000;
+export const ITERATIONS = 50_000;
 
 export const MIN_PASSWORD_LENGTH = 16;
 
