@@ -1,0 +1,8 @@
+.field {
+  display: grid;
+}
+
+.field__label {
+  color: var(--ink-muted);
+  font-size: var(--font-size-0);
+}

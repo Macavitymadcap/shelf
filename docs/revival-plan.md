@@ -13,14 +13,14 @@ signed-in users can add, edit, delete and lend.
 
 ## Status
 
-| Milestone             | Delivers                                                                   | Gate                                                | Status                     |
-| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------- |
-| 0 Foundations         | Monorepo, Worker on `workers.dev`, D1 and R2 via Pulumi, schema v1, CI     | CI deploys a page from `main`                       | Done, 23 Oct 2026          |
-| 1 Auth                | Tidy-ups, PBKDF2 measurement, password sign-in, D1 sessions, CSP, user CLI | Sign in and out on the deployed Worker from a phone | Next; see `docs/1-auth.md` |
-| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | Planned                    |
-| 3 Lookup and scanning | Barcode classification, providers, candidate picker, scanner               | A photo of an ISBN fills the form                   | Planned                    |
-| 4 Covers and loans    | Covers in R2, lending and returns, loans page                              | A copy lent and returned                            | Planned                    |
-| 5 Passkeys and polish | Passkey enrolment and sign-in, BGG lookup                                  | Phone signs in with a passkey                       | Planned                    |
+| Milestone             | Delivers                                                                   | Gate                                                | Status                                                                                          |
+| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 0 Foundations         | Monorepo, Worker on `workers.dev`, D1 and R2 via Pulumi, schema v1, CI     | CI deploys a page from `main`                       | Done, 23 Oct 2026                                                                               |
+| 1 Auth                | Tidy-ups, PBKDF2 measurement, password sign-in, D1 sessions, CSP, user CLI | Sign in and out on the deployed Worker from a phone | In progress; see `docs/1-auth.md`, then `docs/1c-interface.md` for the card catalogue interface |
+| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | Planned                                                                                         |
+| 3 Lookup and scanning | Barcode classification, providers, candidate picker, scanner               | A photo of an ISBN fills the form                   | Planned                                                                                         |
+| 4 Covers and loans    | Covers in R2, lending and returns, loans page                              | A copy lent and returned                            | Planned                                                                                         |
+| 5 Passkeys and polish | Passkey enrolment and sign-in, BGG lookup                                  | Phone signs in with a passkey                       | Planned                                                                                         |
 
 Auth comes before any edit form so nothing that writes data reaches
 production unprotected. FTS5 search moved into milestone 2 alongside the
@@ -50,21 +50,23 @@ The first version covers:
 Everything runs inside Cloudflare's free allowances; the only accounts
 outside Cloudflare are free API tokens and Pulumi Cloud.
 
-| Concern            | Choice                                                                                     | Why                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Toolchain          | Vite+ 1.4 (`vp`) with pnpm 12, `vite:monorepo` template                                    | One tool for dev, build, test (Vitest 5), lint (Oxlint), format (Oxfmt) and type-check (tsgo) |
-| Runtime            | Cloudflare Workers, `nodejs_compat`, `shelf.dank-shelf.workers.dev`                        | No sleep or cold-start penalty; Hono runs natively                                            |
-| Web framework      | Hono 4.13 with Hono JSX                                                                    | Same pattern as the original; JSX templates, typed routes and middleware                      |
-| Interactivity      | htmx 4.0 (`htmx.org@4`), from milestone 2                                                  | Hypermedia approach kept; no SPA                                                              |
-| Styling            | Open Props, served from `apps/web/public/vendor/`                                          | Design tokens as CSS custom properties; self-hosted so the CSP can stay `'self'`              |
-| Database           | Cloudflare D1 (SQLite)                                                                     | Free and bound directly to the Worker                                                         |
-| ORM and migrations | Drizzle ORM 0.45 with drizzle-kit 0.31                                                     | Typed schema, generated SQL migrations, D1 driver                                             |
-| Tests              | Vitest via `vp test`; D1 tests use Wrangler's `getPlatformProxy` and Drizzle's D1 migrator | Real local D1 in Node tests; no Workers test pool needed                                      |
-| Validation         | Valibot, from milestone 2                                                                  | Small bundle; parses form posts and provider responses                                        |
-| Cover storage      | Cloudflare R2                                                                              | Free egress; images copied in at add time                                                     |
-| Auth               | Self-built: password then passkeys; D1-backed sessions in a `__Host-` cookie               | A learning goal; replaces the deno-books JWT in `localStorage`                                |
-| Infrastructure     | Pulumi (TypeScript) for D1, R2 and secret values; Wrangler deploys the Worker              | Tries Pulumi without fighting it over bundling                                                |
-| CI                 | GitHub Actions with `setup-vp` and `pulumi/actions`                                        | Check, test and build on every push; deploy from `main`                                       |
+| Concern            | Choice                                                                                                                                                     | Why                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Toolchain          | Vite+ 1.4 (`vp`) with pnpm 12, `vite:monorepo` template                                                                                                    | One tool for dev, build, test (Vitest 5), lint (Oxlint), format (Oxfmt) and type-check (tsgo)                                    |
+| Runtime            | Cloudflare Workers, `nodejs_compat`, `shelf.dank-shelf.workers.dev`                                                                                        | No sleep or cold-start penalty; Hono runs natively                                                                               |
+| Web framework      | Hono 4.13 with Hono JSX                                                                                                                                    | Same pattern as the original; JSX templates, typed routes and middleware                                                         |
+| Interactivity      | htmx 4.0 (`htmx.org@4`), from milestone 2                                                                                                                  | Hypermedia approach kept; no SPA                                                                                                 |
+| Styling            | Open Props scales (sizes, fonts, borders, shadows, red, blue) in `apps/web/public/vendor/open-props/`, plus a small reset instead of Open Props' normalize | Consistent spacing and type for 2.4 KB gzipped; self-hosted so the CSP can stay `'self'`; normalize's opinions fought the design |
+| Interface          | Card catalogue look; atomic components with one stylesheet each, in cascade layers                                                                         | Mobile first at 360 px (Galaxy A5); dark mode follows the phone; see Interface conventions                                       |
+| Typefaces          | Libre Caslon Text for titles, Courier Prime for typed details, self-hosted woff2 from Fontsource                                                           | The phone only has Roboto and Noto Serif; about 115 KB for five files                                                            |
+| Database           | Cloudflare D1 (SQLite)                                                                                                                                     | Free and bound directly to the Worker                                                                                            |
+| ORM and migrations | Drizzle ORM 0.45 with drizzle-kit 0.31                                                                                                                     | Typed schema, generated SQL migrations, D1 driver                                                                                |
+| Tests              | Vitest via `vp test`; D1 tests use Wrangler's `getPlatformProxy` and Drizzle's D1 migrator                                                                 | Real local D1 in Node tests; no Workers test pool needed                                                                         |
+| Validation         | Valibot, from milestone 2                                                                                                                                  | Small bundle; parses form posts and provider responses                                                                           |
+| Cover storage      | Cloudflare R2                                                                                                                                              | Free egress; images copied in at add time                                                                                        |
+| Auth               | Self-built: password then passkeys; D1-backed sessions in a `__Host-` cookie                                                                               | A learning goal; replaces the deno-books JWT in `localStorage`                                                                   |
+| Infrastructure     | Pulumi (TypeScript) for D1, R2 and secret values; Wrangler deploys the Worker                                                                              | Tries Pulumi without fighting it over bundling                                                                                   |
+| CI                 | GitHub Actions with `setup-vp` and `pulumi/actions`                                                                                                        | Check, test and build on every push; deploy from `main`                                                                          |
 
 ### Free allowances that matter
 
@@ -79,7 +81,7 @@ outside Cloudflare are free API tokens and Pulumi Cloud.
 One deployable app, internal packages that are never built or published,
 and the Pulumi program. Packages arrive with the milestone that needs them.
 
-```plaintext
+```
 shelf/
 ├── apps/
 │   └── web/            Hono Worker: routes, pages, scripts, wrangler.jsonc   (0)
@@ -143,6 +145,33 @@ These are the settings milestone 0 had to discover one error at a time.
 - Lint and format settings live once in the root `vite.config.ts`. The
   pre-commit hook runs `vp check --fix` on staged files, so it also
   reformats generated files such as `worker-configuration.d.ts`.
+
+### Interface conventions
+
+- Components live in `apps/web/src/components/{atoms,molecules,organisms,templates}`;
+  pages in `src/pages` compose them. Each component has one stylesheet of
+  the same name in the matching folder under `public/styles`, imported in
+  `public/styles/app.css`, the only stylesheet the page links.
+- Layers, in order: `vendor, reset, tokens, base, atoms, molecules,
+  organisms, templates`. A later layer wins, so no specificity contests.
+- Components use the semantic tokens in `tokens.css` (`--ink`, `--card`,
+  `--desk`, `--rule-red`, `--rule-blue`, `--focus`, `--line`); Open Props
+  supplies sizes, radii, shadows and the raw colours behind the tokens.
+  Only the Open Props groups in use are vendored; a new group means a line
+  in `scripts/vendor.ts` and an `@import` in `app.css`.
+- `public/vendor` is copied, never edited, and excluded from formatting.
+- No `style` attributes: the CSP blocks them.
+- Each part of a component has a class prefixed with the component name
+  (`.index-card__title`); variations use `data-` attributes. Parts are flat
+  rules; `&` nesting is only for states, pseudo-elements, variants and media
+  queries. Native nesting has no Sass-style `&__part`.
+- A stylesheet selects only its own component's classes; a parent places a
+  child by passing it a class, never with a descendant selector.
+- Components take view shapes such as `ItemSummary`, never database rows.
+- Every component appears on the signed-in component sheet,
+  `/manage/styleguide`, with sample data.
+- Tap targets are at least 44 px; text contrast clears WCAG AA in both
+  schemes.
 
 ## Data model
 
@@ -622,7 +651,7 @@ Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and
 | Generate a migration       | `vp -C packages/db run db:generate`                                |
 | Apply migrations locally   | `vp -C apps/web run migrate --local`                               |
 | Regenerate `Env` types     | `vp -C apps/web run cf-typegen`                                    |
-| Create a user              | `cd apps/web && vpx scripts/create-user.ts --local`                |
+| Create a user              | `cd apps/web && vp exec vpx ./scripts/create-user.ts --local`      |
 | Query local D1             | `vp -C apps/web exec wrangler d1 execute DB --local --command "…"` |
 
 Notes from milestone 0:

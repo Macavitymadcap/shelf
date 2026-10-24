@@ -1,0 +1,18 @@
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-3);
+  padding-block: var(--size-3);
+}
+
+.site-header__nav {
+  font-size: var(--font-size-0);
+}
+
+.site-header__link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap);
+  padding-inline: var(--size-2);
+}

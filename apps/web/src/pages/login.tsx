@@ -1,4 +1,5 @@
-import { Layout } from '../layout.tsx';
+import { SignInForm } from '../components/organisms/sign-in-form.tsx';
+import { Page } from '../components/templates/page.tsx';
 
 const MESSAGES = {
   invalid: 'Incorrect username or password.',
@@ -8,20 +9,7 @@ const MESSAGES = {
 type LoginPageProps = { next: string; username?: string; error?: keyof typeof MESSAGES };
 
 export const LoginPage = ({ next, username = '', error }: LoginPageProps) => (
-  <Layout title="Sign in · Shelf" user={null}>
-    <h1>Sign in</h1>
-    {error && <p role="alert">{MESSAGES[error]}</p>}
-    <form method="post" action="/login">
-      <input type="hidden" name="next" value={next} />
-      <label>
-        Username
-        <input name="username" value={username} autocomplete="username" required />
-      </label>
-      <label>
-        Password
-        <input name="password" type="password" autocomplete="current-password" required />
-      </label>
-      <button type="submit">Sign in</button>
-    </form>
-  </Layout>
+  <Page title="Sign in to Shelf" user={null}>
+    <SignInForm next={next} username={username} error={error && MESSAGES[error]} />
+  </Page>
 );

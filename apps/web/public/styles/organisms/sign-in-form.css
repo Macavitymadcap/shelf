@@ -1,0 +1,9 @@
+.sign-in-form {
+  display: grid;
+  gap: var(--size-4);
+  justify-items: start;
+}
+
+.sign-in-form__field {
+  justify-self: stretch;
+}

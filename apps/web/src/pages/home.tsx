@@ -1,8 +1,10 @@
 import type { SessionUser } from '@shelf/auth';
-import { Layout } from '../layout.tsx';
+import { ItemList } from '../components/organisms/item-list.tsx';
+import { Page } from '../components/templates/page.tsx';
 
 export const HomePage = ({ user }: { user: SessionUser | null }) => (
-  <Layout title="Shelf" user={user}>
+  <Page title="Shelf" user={user}>
     <h1>Shelf: A catalogue of books, games and records</h1>
-  </Layout>
+    <ItemList items={[]} empty="Nothing is catalogued yet." />
+  </Page>
 );

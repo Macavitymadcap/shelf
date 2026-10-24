@@ -1,0 +1,64 @@
+@font-face {
+  font-family: 'Libre Caslon Text';
+  src: url('/vendor/fonts/libre-caslon-text-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Libre Caslon Text';
+  src: url('/vendor/fonts/libre-caslon-text-latin-400-italic.woff2') format('woff2');
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Libre Caslon Text';
+  src: url('/vendor/fonts/libre-caslon-text-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('/vendor/fonts/courier-prime-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('/vendor/fonts/courier-prime-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Semantic tokens: components use these, never raw Open Props colours. */
+:root {
+  color-scheme: light dark;
+  --font-serif: 'Libre Caslon Text', var(--font-old-style);
+  --font-typed: 'Courier Prime', var(--font-monospace-code);
+
+  --desk: #d8dde1;
+  --card: #f6f1e4;
+  --ink: #1f2a44;
+  --ink-muted: #565e70;
+  --rule-red: var(--red-9);
+  --rule-blue: color-mix(in oklab, var(--blue-5) 35%, transparent);
+  --focus: var(--blue-8);
+
+  --line: 1.75rem;
+  --gutter: var(--size-3);
+  --measure: 40rem;
+  --tap: 44px;
+  --card-radius: var(--radius-1);
+  --card-shadow: var(--shadow-2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --desk: #121417;
+    --card: #25231f;
+    --ink: #e9e3d5;
+    --ink-muted: #a59e90;
+    --rule-red: var(--red-5);
+    --rule-blue: color-mix(in oklab, var(--blue-6) 30%, transparent);
+    --focus: var(--blue-4);
+  }
+}

@@ -6,6 +6,7 @@ export default defineConfig({
   },
   fmt: {
     singleQuote: true,
+    ignorePatterns: ['apps/web/public/vendor/**'],
   },
   lint: {
     jsPlugins: [{ name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }],
