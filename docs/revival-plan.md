@@ -1,10 +1,10 @@
 # Shelf: revival plan
 
-Last updated 23 October 2026. Milestone 0 (Foundations) is complete and
-deployed at <https://shelf.dank-shelf.workers.dev>. This version reflects the
-repository as built (`Macavitymadcap/shelf` at `f876900`) and folds in what
-milestone 0 taught: about 45 follow-up questions, grouped in
-[Lessons from milestone 0](#lessons-from-milestone-0).
+Last updated 24 October 2026. Milestones 0 (Foundations) and 1 (Auth) are
+complete and deployed at <https://shelf.dank-shelf.workers.dev>. This
+version reflects the repository at `c000f6b` and the decisions milestone 2
+makes, which `docs/milestone-guides/2-catalogue.md` builds. What milestones
+0 and 1 taught is in [Lessons from milestones 0 and 1](#lessons-from-milestones-0-and-1).
 
 Shelf is a rebuild of [deno-books](https://github.com/Macavitymadcap/deno-books)
 as a public catalogue of books, vinyl records and board games, running for
@@ -17,7 +17,7 @@ signed-in users can add, edit, delete and lend.
 | --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | ----------------- |
 | 0 Foundations         | Monorepo, Worker on `workers.dev`, D1 and R2 via Pulumi, schema v1, CI     | CI deploys a page from `main`                       | Done, 23 Oct 2026 |
 | 1 Auth                | Tidy-ups, PBKDF2 measurement, password sign-in, D1 sessions, CSP, user CLI | Sign in and out on the deployed Worker from a phone | Done, 24 Oct 2026 |
-| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | Planned           |
+| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | In progress       |
 | 3 Lookup and scanning | Barcode classification, providers, candidate picker, scanner               | A photo of an ISBN fills the form                   | Planned           |
 | 4 Covers and loans    | Covers in R2, lending and returns, loans page                              | A copy lent and returned                            | Planned           |
 | 5 Passkeys and polish | Passkey enrolment and sign-in, BGG lookup                                  | Phone signs in with a passkey                       | Planned           |
@@ -55,14 +55,14 @@ outside Cloudflare are free API tokens and Pulumi Cloud.
 | Toolchain          | Vite+ 1.4 (`vp`) with pnpm 12, `vite:monorepo` template                                                                                                    | One tool for dev, build, test (Vitest 5), lint (Oxlint), format (Oxfmt) and type-check (tsgo)                                    |
 | Runtime            | Cloudflare Workers, `nodejs_compat`, `shelf.dank-shelf.workers.dev`                                                                                        | No sleep or cold-start penalty; Hono runs natively                                                                               |
 | Web framework      | Hono 4.13 with Hono JSX                                                                                                                                    | Same pattern as the original; JSX templates, typed routes and middleware                                                         |
-| Interactivity      | htmx 4.0 (`htmx.org@4`), from milestone 2                                                                                                                  | Hypermedia approach kept; no SPA                                                                                                 |
+| Interactivity      | htmx 4.0.0 and its `hx-csp` extension, vendored into `apps/web/public/vendor/htmx/`                                                                        | Hypermedia approach kept; no SPA; loads from `'self'` with the nonce                                                             |
 | Styling            | Open Props scales (sizes, fonts, borders, shadows, red, blue) in `apps/web/public/vendor/open-props/`, plus a small reset instead of Open Props' normalize | Consistent spacing and type for 2.4 KB gzipped; self-hosted so the CSP can stay `'self'`; normalize's opinions fought the design |
 | Interface          | Card catalogue look; atomic components with one stylesheet each, in cascade layers                                                                         | Mobile first at 360 px (Galaxy A5); dark mode follows the phone; see Interface conventions                                       |
 | Typefaces          | Libre Caslon Text for titles, Courier Prime for typed details, self-hosted woff2 from Fontsource                                                           | The phone only has Roboto and Noto Serif; about 115 KB for five files                                                            |
 | Database           | Cloudflare D1 (SQLite)                                                                                                                                     | Free and bound directly to the Worker                                                                                            |
 | ORM and migrations | Drizzle ORM 0.45 with drizzle-kit 0.31                                                                                                                     | Typed schema, generated SQL migrations, D1 driver                                                                                |
 | Tests              | Vitest via `vp test`; D1 tests use Wrangler's `getPlatformProxy` and Drizzle's D1 migrator                                                                 | Real local D1 in Node tests; no Workers test pool needed                                                                         |
-| Validation         | Valibot, from milestone 2                                                                                                                                  | Small bundle; parses form posts and provider responses                                                                           |
+| Validation         | Valibot 1.5                                                                                                                                                | Small bundle; parses form posts, and provider responses from milestone 3                                                         |
 | Cover storage      | Cloudflare R2                                                                                                                                              | Free egress; images copied in at add time                                                                                        |
 | Auth               | Self-built: password then passkeys; D1-backed sessions in a `__Host-` cookie                                                                               | A learning goal; replaces the deno-books JWT in `localStorage`                                                                   |
 | Infrastructure     | Pulumi (TypeScript) for D1, R2 and secret values; Wrangler deploys the Worker                                                                              | Tries Pulumi without fighting it over bundling                                                                                   |
@@ -92,22 +92,22 @@ shelf/
 │   ├── providers/      Open Library, Google Books, MusicBrainz, Discogs, BGG (3)
 │   ├── covers/         fetch, check and store cover images in R2             (4)
 │   ├── scanner/        browser BarcodeDetector module                        (3)
-│   └── ui/             shared Hono JSX components, if apps/web outgrows them (2)
+│   └── ui/             shared Hono JSX components, if apps/web outgrows them (later)
 ├── infra/              Pulumi program: D1, R2, secret values                 (0)
 ├── docs/               plan and milestone guides
 ├── vite.config.ts      root lint, format, staged and task settings
 └── pnpm-workspace.yaml workspace packages, catalog, build approvals
 ```
 
-| Package     | Depends on       | Runs in               | Notes                                                                                 |
-| ----------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------- |
-| `catalogue` | nothing          | Worker and browser    | The shared vocabulary: kinds, roles, formats, grades, ISBN and EAN checks             |
-| `db`        | `catalogue`      | Worker; tests in Node | `createDb(d1)` takes the binding; `@shelf/db/testing` gives tests a migrated local D1 |
-| `auth`      | `db`             | Worker; CLI in Node   | Web Crypto only, so the same code hashes in the Worker, the tests and the user CLI    |
-| `providers` | `catalogue`      | Worker                | Each adapter maps a provider response to one `Candidate` shape                        |
-| `covers`    | nothing          | Worker                | Takes an `R2Bucket`; checks content type and size before storing                      |
-| `scanner`   | nothing          | Browser               | Bundled by Vite into one small script for the add page                                |
-| `web`       | all of the above | Worker                | Composition: middleware, routes and pages                                             |
+| Package     | Depends on       | Runs in               | Notes                                                                              |
+| ----------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------- |
+| `catalogue` | nothing          | Worker and browser    | Kinds, roles, formats, grades, sorting, tracklists; ISBN and EAN checks in 3       |
+| `db`        | `catalogue`      | Worker; tests in Node | Schema, catalogue saves and reads, search; `@shelf/db/testing` has a migrated D1   |
+| `auth`      | `db`             | Worker; CLI in Node   | Web Crypto only, so the same code hashes in the Worker, the tests and the user CLI |
+| `providers` | `catalogue`      | Worker                | Each adapter maps a provider response to one `Candidate` shape                     |
+| `covers`    | nothing          | Worker                | Takes an `R2Bucket`; checks content type and size before storing                   |
+| `scanner`   | nothing          | Browser               | Bundled by Vite into one small script for the add page                             |
+| `web`       | all of the above | Worker                | Composition: middleware, routes and pages                                          |
 
 ### Package conventions
 
@@ -170,6 +170,13 @@ These are the settings milestone 0 had to discover one error at a time.
 - Components take view shapes such as `ItemSummary`, never database rows.
 - Every component appears on the signed-in component sheet,
   `/manage/styleguide`, with sample data.
+- A component that only arranges other components and adds no element of
+  its own, such as `FieldList`, has no stylesheet.
+- Every element with an `hx-` attribute spreads `{...useHx()}`, which adds
+  the response's nonce; `hx-csp` strips htmx from any element without it.
+  Every route answers through `render()`, which provides that nonce.
+- Forms use `method="post"` and work without JavaScript; there are no PUT,
+  PATCH or DELETE routes, and deletes post to `…/delete`.
 - Tap targets are at least 44 px; text contrast clears WCAG AA in both
   schemes.
 
@@ -482,10 +489,19 @@ CREATE VIRTUAL TABLE search USING fts5(
 );
 ```
 
-- `reindexWork(db, workId)` in `db` rebuilds one work's row inside the same
-  `db.batch()` as every save that touches the work; there are no triggers.
-- Queries run as raw SQL (`where search match ? order by rank`) after the
-  input is turned into quoted terms with a trailing `*`.
+- The table is declared for queries in `packages/db/src/catalogue/search-index.ts`,
+  outside `src/schema`, so drizzle-kit never generates SQL for it. FTS5's
+  hidden `rank` column is left out of that declaration, because an insert
+  naming `rank` is a configuration command.
+- `reindexWork(db, workId)` rebuilds one work's row with `insert … select`
+  inside the same `db.batch()` as every save that touches the work; there
+  are no triggers.
+- `searchWorks` matches after `toMatchQuery` turns the input into quoted
+  terms with a trailing `*`, and orders by `rank`. With no words and a kind,
+  it lists that kind A to Z.
+- Correlated subqueries in a one-table select are wrapped in `nested()`,
+  because Drizzle drops table names from columns written directly in such a
+  select's fields.
 - `wrangler d1 export` refuses databases with virtual tables. Backups rely on
   D1 Time Travel (7 days on the free plan), or an export script that drops
   `search`, exports and rebuilds it.
@@ -584,11 +600,10 @@ no public sign-up: users are created with a CLI script.
 
 The Workers free plan allows 10 ms of CPU per request, and Cloudflare's
 production runtime reportedly rejects PBKDF2 counts above 100,000. The local
-runtime enforces neither, so milestone 1 measures on the deployed Worker
-before choosing `ITERATIONS`. If 100,000 does not fit, the count drops to
-the largest that does, which stays sound here because of the secret pepper
-and 16-character minimum, generated passwords; passkeys then become the main
-sign-in in milestone 5.
+runtime enforces neither, so milestone 1 measured on the deployed Worker:
+100,000 did not fit, and `ITERATIONS` is 50,000. That stays sound here
+because of the secret pepper and the 16-character minimum for generated
+passwords; passkeys become the main sign-in in milestone 5.
 
 ## Infrastructure, secrets and CI
 
@@ -652,6 +667,7 @@ Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and
 | Apply migrations locally   | `vp -C apps/web run migrate --local`                               |
 | Regenerate `Env` types     | `vp -C apps/web run cf-typegen`                                    |
 | Create a user              | `cd apps/web && vp exec vpx ./scripts/create-user.ts --local`      |
+| Copy vendored files        | `vp -C apps/web run vendor`                                        |
 | Query local D1             | `vp -C apps/web exec wrangler d1 execute DB --local --command "…"` |
 
 Notes from milestone 0:
@@ -670,52 +686,62 @@ Notes from milestone 0:
 
 ## Routes and htmx
 
-Every route returns HTML. The table lists the full app; milestone 1 builds
-`/`, `/login`, `/logout` and a placeholder `/manage`.
+Every route returns HTML. Milestones 1 and 2 build everything except the
+covers, lookup and loans routes. Forms only post; a 422 answers a form
+with mistakes, and a 303 follows every successful save.
 
-| Method    | Path                          | Auth      | Returns                                                    |
-| --------- | ----------------------------- | --------- | ---------------------------------------------------------- |
-| GET       | `/`                           | Public    | Recently added, counts by kind, search box                 |
-| GET       | `/search?q=&kind=`            | Public    | Result list, swapped as you type                           |
-| GET       | `/works/:id`                  | Public    | Work, editions and copies; loan status only when signed in |
-| GET       | `/people/:id`                 | Public    | Everything credited to a person, by role                   |
-| GET       | `/covers/:key`                | Public    | Image from R2 with long cache headers                      |
-| GET, POST | `/login`                      | Public    | Form; session cookie and redirect                          |
-| POST      | `/logout`                     | Signed in | Session deleted, cookie cleared                            |
-| GET       | `/manage`                     | Signed in | Management home                                            |
-| GET       | `/manage/add`                 | Signed in | Barcode field, camera button, title search, manual entry   |
-| POST      | `/manage/lookup`              | Signed in | Candidate list fragment                                    |
-| POST      | `/manage/works`               | Signed in | Creates work, edition and copy                             |
-| GET, PUT  | `/manage/works/:id/edit`      | Signed in | Edit form; saved row fragment                              |
-| POST      | `/manage/editions/:id/copies` | Signed in | New copy row fragment                                      |
-| DELETE    | `/manage/copies/:id`          | Signed in | Empty response after `hx-confirm`                          |
-| POST      | `/manage/copies/:id/loans`    | Signed in | Loan badge fragment                                        |
-| PATCH     | `/manage/loans/:id/return`    | Signed in | Badge cleared to available                                 |
-| GET       | `/manage/loans`               | Signed in | Everything currently out, oldest first                     |
+| Method    | Path                                                             | Auth      | Returns                                                    | In  |
+| --------- | ---------------------------------------------------------------- | --------- | ---------------------------------------------------------- | --- |
+| GET       | `/`                                                              | Public    | Search box, counts by kind, recently added                 | 2   |
+| GET       | `/search?q=&kind=`                                               | Public    | Results; only the results for an htmx partial request      | 2   |
+| GET       | `/works/:id`                                                     | Public    | Work, editions and copies; editing controls when signed in | 2   |
+| GET       | `/people/:id`                                                    | Public    | Everything credited to a person, with the role             | 2   |
+| GET       | `/covers/:key`                                                   | Public    | Image from R2 with long cache headers                      | 4   |
+| GET, POST | `/login`                                                         | Public    | Form; session cookie and redirect                          | 1   |
+| POST      | `/logout`                                                        | Signed in | Session deleted, cookie cleared                            | 1   |
+| GET       | `/manage`                                                        | Signed in | Management home                                            | 1   |
+| GET       | `/manage/add?kind=`                                              | Signed in | Kind choice or add form; barcode and camera from 3         | 2   |
+| POST      | `/manage/lookup`                                                 | Signed in | Candidate list fragment                                    | 3   |
+| POST      | `/manage/works?kind=`                                            | Signed in | Creates work, edition and copy                             | 2   |
+| GET, POST | `/manage/works/:id/edit`, `/manage/works/:id`                    | Signed in | Work form; save                                            | 2   |
+| POST      | `/manage/works/:id/delete`                                       | Signed in | Copies, editions and work deleted                          | 2   |
+| GET, POST | `/manage/works/:id/editions/new`, `/manage/works/:id/editions`   | Signed in | Another edition with its first copy                        | 2   |
+| GET, POST | `/manage/editions/:id/edit`, `/manage/editions/:id`              | Signed in | Edition form; save                                         | 2   |
+| POST      | `/manage/editions/:id/delete`                                    | Signed in | Edition and its copies deleted                             | 2   |
+| GET, POST | `/manage/editions/:id/copies/new`, `/manage/editions/:id/copies` | Signed in | Another copy                                               | 2   |
+| GET, POST | `/manage/copies/:id/edit`, `/manage/copies/:id`                  | Signed in | Copy form; save                                            | 2   |
+| POST      | `/manage/copies/:id/delete`                                      | Signed in | Copy deleted                                               | 2   |
+| GET       | `/manage/credit-row?kind=`                                       | Signed in | One blank credit row                                       | 2   |
+| POST      | `/manage/copies/:id/loans`                                       | Signed in | Loan badge fragment                                        | 4   |
+| POST      | `/manage/loans/:id/return`                                       | Signed in | Badge cleared to available                                 | 4   |
+| GET       | `/manage/loans`                                                  | Signed in | Everything currently out, oldest first                     | 4   |
+| GET       | `/manage/styleguide`                                             | Signed in | The component sheet                                        | 1   |
 
 ### htmx 4 patterns
 
-- Install `htmx.org@4`; npm `latest` stays on htmx 2 until early 2027. How
-  the script reaches the page (copied into `public/vendor/` like Open Props,
-  or bundled by a Vite client entry with the scanner) is decided in
-  milestone 2; either way it loads from the app's own origin with the nonce.
-- One `render(c, page, fragment)` helper reads `HX-Request-Type`: `full` gets
-  the layout, `partial` gets the fragment.
-- Inheritance is explicit: `hx-boost:inherited="true"` on the manage layout's
-  `<main>`; `hx-confirm` on each delete button.
-- 4xx and 5xx responses swap by default. A failed save returns 422 with the
-  form fragment and `hx-swap="outerMorph"` keeps focus and typed input.
+- `htmx.org@4.0.0` is pinned and copied into `public/vendor/htmx/` by
+  `scripts/vendor.ts`; npm `latest` stays on htmx 2 until early 2027. The
+  page loads it and `hx-csp` with the nonce and `defer`, and a
+  `<meta name="htmx-config">` allows only `hx-csp` to register.
+- `render(c, page, { fragment, status })` reads `HX-Request-Type`: `partial`
+  gets the fragment, anything else the page, with `Vary: HX-Request-Type`.
+- Inheritance is explicit: `hx-boost:inherited="true"` on every page's
+  `<main>`, so links and forms fetch and swap the body.
+- Boosted forms that fail validation answer 422 with the whole page;
+  `hx-status:422="swap:innerMorph push:false"` keeps focus, typed input and
+  the address. JSX cannot name `hx-status:422`, so it is spread from an
+  object.
+- `hx-confirm` on each delete form asks first.
+- Live search triggers on `input delay:300ms, submit`, without `changed`,
+  which never fires on a form.
 - `<hx-partial>` covers multi-target updates, such as a lent copy's row and
-  the header's on-loan count.
-- Forms keep a native `action` and `method`, so they work without JavaScript.
+  the header's on-loan count, in milestone 4.
 - Events use the `htmx:phase:action` names, such as `htmx:after:swap`.
-- Extensions: `hx-csp` and `hx-preload`.
 
-## Lessons from milestone 0
+## Lessons from milestones 0 and 1
 
 Milestone 0's guide gave the right steps but left about 45 questions to the
-build. They fell into five groups, and the milestone 1 guide answers each
-up front.
+build. They fell into five groups, and later guides answer each up front.
 
 | Group                    | Questions | Examples                                                                                                       | What guides now do                                                              |
 | ------------------------ | --------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -725,17 +751,25 @@ up front.
 | Data model decisions     | ~10       | nullability, delete rules, kind ids, languages, track sides                                                    | Settle decisions in this plan before the guide uses them                        |
 | Checking results         | ~5        | migration reviews, `git status`, blank page behind the VPN                                                     | State the expected output after each step and end each part with a checkpoint   |
 
+For milestone 1, a review of the repository at `c000f6b` found two things
+the guides themselves can prevent:
+
+| Found                                                                              | What guides now do                                                                      |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| A fix from one guide's tidy-ups came undone (`tsc` back in the build script)       | Give a short reason with each tidy-up, so it reads as a rule rather than a one-off edit |
+| A name chosen while building (`joinClassNames`) left the guide showing the old one | The next guide's tidy-ups correct earlier guides, so they stay usable as reference      |
+
 ## Open questions and risks
 
-| Item                                    | Risk                                                                  | Fallback                                                 | Settled in |
-| --------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- | ---------- |
-| PBKDF2 against the 10 ms CPU limit      | 100,000 iterations may exceed it                                      | Largest count that passes; passkeys first in milestone 5 | 1          |
-| Username lockout                        | Anyone can lock a known username for 15 minutes by failing five times | Accept for two users; passkeys bypass it later           | 1          |
-| MusicBrainz's 1 request a second per IP | Workers share egress IPs, so lookups may get 503s                     | Retry once; Discogs answers alongside                    | 3          |
-| BGG token approval                      | A week or more before game lookups work                               | Manual entry until then; apply now if not done           | 3          |
-| FTS5 on remote D1                       | Virtual tables to confirm; exports refuse them                        | `LIKE` queries                                           | 2          |
-| htmx delivery                           | Vendored file or Vite client entry                                    | Vendored file                                            | 2          |
-| Pulumi state                            | Individual tier terms                                                 | Self-managed backend in R2                               | Open       |
+| Item                                    | Risk                                                                  | Fallback                                         | Settled in |
+| --------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ | ---------- |
+| PBKDF2 against the 10 ms CPU limit      | 100,000 iterations exceeded it                                        | Settled at 50,000; passkeys first in milestone 5 | 1, done    |
+| Username lockout                        | Anyone can lock a known username for 15 minutes by failing five times | Accept for two users; passkeys bypass it later   | 1          |
+| MusicBrainz's 1 request a second per IP | Workers share egress IPs, so lookups may get 503s                     | Retry once; Discogs answers alongside            | 3          |
+| BGG token approval                      | A week or more before game lookups work                               | Manual entry until then; apply now if not done   | 3          |
+| FTS5 on remote D1                       | Works on local D1; remote confirmed at the milestone 2 gate           | `LIKE` queries                                   | 2          |
+| htmx delivery                           | Vendored file or Vite client entry                                    | Settled: vendored file                           | 2, done    |
+| Pulumi state                            | Individual tier terms                                                 | Self-managed backend in R2                       | Open       |
 
 Settled in milestone 0: the Cloudflare Vite plugin works under `vp dev` and
 `vp build`; D1 tests run through `getPlatformProxy` instead of the Workers
