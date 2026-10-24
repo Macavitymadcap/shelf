@@ -13,14 +13,14 @@ signed-in users can add, edit, delete and lend.
 
 ## Status
 
-| Milestone             | Delivers                                                                   | Gate                                                | Status                                                                                          |
-| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 0 Foundations         | Monorepo, Worker on `workers.dev`, D1 and R2 via Pulumi, schema v1, CI     | CI deploys a page from `main`                       | Done, 23 Oct 2026                                                                               |
-| 1 Auth                | Tidy-ups, PBKDF2 measurement, password sign-in, D1 sessions, CSP, user CLI | Sign in and out on the deployed Worker from a phone | In progress; see `docs/1-auth.md`, then `docs/1c-interface.md` for the card catalogue interface |
-| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | Planned                                                                                         |
-| 3 Lookup and scanning | Barcode classification, providers, candidate picker, scanner               | A photo of an ISBN fills the form                   | Planned                                                                                         |
-| 4 Covers and loans    | Covers in R2, lending and returns, loans page                              | A copy lent and returned                            | Planned                                                                                         |
-| 5 Passkeys and polish | Passkey enrolment and sign-in, BGG lookup                                  | Phone signs in with a passkey                       | Planned                                                                                         |
+| Milestone             | Delivers                                                                   | Gate                                                | Status            |
+| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | ----------------- |
+| 0 Foundations         | Monorepo, Worker on `workers.dev`, D1 and R2 via Pulumi, schema v1, CI     | CI deploys a page from `main`                       | Done, 23 Oct 2026 |
+| 1 Auth                | Tidy-ups, PBKDF2 measurement, password sign-in, D1 sessions, CSP, user CLI | Sign in and out on the deployed Worker from a phone | Done, 24 Oct 2026 |
+| 2 Catalogue           | Public pages, FTS5 search, manual add, edit and delete, htmx               | First 20 items entered by hand                      | Planned           |
+| 3 Lookup and scanning | Barcode classification, providers, candidate picker, scanner               | A photo of an ISBN fills the form                   | Planned           |
+| 4 Covers and loans    | Covers in R2, lending and returns, loans page                              | A copy lent and returned                            | Planned           |
+| 5 Passkeys and polish | Passkey enrolment and sign-in, BGG lookup                                  | Phone signs in with a passkey                       | Planned           |
 
 Auth comes before any edit form so nothing that writes data reaches
 production unprotected. FTS5 search moved into milestone 2 alongside the
