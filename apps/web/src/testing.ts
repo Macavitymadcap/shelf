@@ -1,5 +1,5 @@
 import { users } from '@shelf/db';
-import { createTestDb } from '@shelf/db';
+import { createTestDb } from '@shelf/db/testing';
 import { hashPassword } from '@shelf/auth';
 import app from './index.tsx';
 
