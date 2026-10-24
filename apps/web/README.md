@@ -10,8 +10,8 @@ To run the smoke test:
 vp exec vpx ./scripts/smoke.ts
 ```
 
-To add a user:
+To add a remote user:
 
 ```bash
-vp exec vpx ./scripts/create-user.ts # use --local or --remote
+PASSWORD_PEPPER="$(cd ../../infra && pulumi config get passwordPepper)" vp exec vpx ./scripts/create-user.ts --remote
 ```
