@@ -1,0 +1,13 @@
+.sign-out-form {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1);
+  font-size: var(--font-size-0);
+}
+
+.sign-out-form__name {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap);
+  padding-inline: var(--size-2);
+}

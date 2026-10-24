@@ -1,0 +1,8 @@
+.item-list {
+  display: grid;
+  gap: var(--size-3);
+}
+
+.item-list__empty {
+  color: var(--ink-muted);
+}

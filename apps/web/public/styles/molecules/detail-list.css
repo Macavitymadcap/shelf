@@ -1,0 +1,15 @@
+/* Typed lines sitting on faint blue rules, like a filled-in card. */
+.detail-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--size-3);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--rule-blue) calc(var(--line) - 1px) var(--line)
+  );
+}
+
+.detail-list__term {
+  color: var(--ink-muted);
+}

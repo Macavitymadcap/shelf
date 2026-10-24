@@ -7,7 +7,11 @@ catalogMode: prefer
 
 catalog:
   '@cloudflare/vite-plugin': ^1.64.0
+  '@fontsource/courier-prime': ^5.3.0
+  '@fontsource/libre-caslon-text': ^5.3.0
+  '@shelf/auth': workspace:*
   '@shelf/catalogue': workspace:*
+  '@shelf/db': workspace:*
   '@types/node': ^26.5.5
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4

@@ -1,0 +1,32 @@
+.item-card {
+  &:has(.item-card__link:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    translate: 0 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      translate: none;
+    }
+  }
+}
+
+.item-card__link {
+  text-decoration: none;
+
+  /* The whole card is the tap target; the title link stretches over it. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}

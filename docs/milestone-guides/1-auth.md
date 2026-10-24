@@ -141,7 +141,7 @@ library template gave `catalogue` and `db` their own `^26.6.5`. Vite+ takes
 version. The `vp` command runs one copy and a package's tests import the
 other, and the tests then fail before running with:
 
-```plaintext
+```
 TypeError: Cannot read properties of undefined (reading 'config')
 ```
 
@@ -665,7 +665,7 @@ vp run ready
 
 Expected, among other output:
 
-```plaintext
+```
 pass: Found no warnings, lint errors, or type errors in … files
  Test Files  1 passed (1)
  Test Files  1 passed (1)
@@ -1979,7 +1979,7 @@ Run it against your local database, then start the app:
 ```bash
 # from apps/web
 vp run migrate --local
-vpx scripts/create-user.ts --local
+vp exec vpx ./scripts/create-user.ts --local
 vp dev
 ```
 
@@ -2028,7 +2028,7 @@ save it there first. Then:
 
 ```bash
 # from apps/web
-PASSWORD_PEPPER="$(pulumi config get passwordPepper --cwd ../../infra)" vpx scripts/create-user.ts --remote
+PASSWORD_PEPPER="$(pulumi config get passwordPepper --cwd ../../infra)" vp exec vpx ./scripts/create-user.ts --remote
 ```
 
 The output should say it is executing on the remote database and end with

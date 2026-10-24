@@ -1,0 +1,10 @@
+.notice {
+  padding-inline-start: var(--size-2);
+  border-inline-start: 3px solid var(--ink-muted);
+  color: var(--ink);
+
+  &[data-tone='error'] {
+    border-inline-start-color: var(--rule-red);
+    color: var(--rule-red);
+  }
+}

@@ -167,7 +167,19 @@ catalogs:
     '@cloudflare/vite-plugin':
       specifier: ^1.64.0
       version: 1.64.0
+    '@fontsource/courier-prime':
+      specifier: ^5.3.0
+      version: 5.3.0
+    '@fontsource/libre-caslon-text':
+      specifier: ^5.3.0
+      version: 5.3.0
+    '@shelf/auth':
+      specifier: workspace:*
+      version: workspace:*
     '@shelf/catalogue':
+      specifier: workspace:*
+      version: workspace:*
+    '@shelf/db':
       specifier: workspace:*
       version: workspace:*
     '@types/node':
@@ -211,6 +223,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@shelf/auth':
+        specifier: 'catalog:'
+        version: link:../../packages/auth
+      '@shelf/db':
+        specifier: 'catalog:'
+        version: link:../../packages/db
       hono:
         specifier: 'catalog:'
         version: 4.13.13
@@ -218,6 +236,12 @@ importers:
       '@cloudflare/vite-plugin':
         specifier: 'catalog:'
         version: 1.64.0(@types/node@26.6.5)(@voidzero-dev/vite-plus-core@1.4.0(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1))(wrangler@4.151.1(@types/node@26.6.5))
+      '@fontsource/courier-prime':
+        specifier: 'catalog:'
+        version: 5.3.0
+      '@fontsource/libre-caslon-text':
+        specifier: 'catalog:'
+        version: 5.3.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5
@@ -255,6 +279,28 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/auth:
+    dependencies:
+      '@shelf/db':
+        specifier: 'catalog:'
+        version: link:../db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@opentelemetry/api@1.10.0)
+      hono:
+        specifier: 'catalog:'
+        version: 4.13.13
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.4.0(@opentelemetry/api@1.10.0)(@types/node@26.6.5)(@vitest/ui@5.0.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(typescript@7.0.2)(yaml@2.9.1)
 
   packages/catalogue:
     devDependencies:
@@ -821,6 +867,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/courier-prime@5.3.0':
+    resolution: {integrity: sha512-KIi1k4VG1Wv+/CGpb1AUpLkUuOAQA6zmvthqxOZGN0AV8BEgQgbK7qAtquv14zsBJAY1bb5BHIEbWVFLgENh0w==}
+
+  '@fontsource/libre-caslon-text@5.3.0':
+    resolution: {integrity: sha512-zuGBMEtekNBbeH4YIbL2sUu8BZKFGr1o6b41v/QPnWaEAOgZHSf4ZFdr90YmRbE3uB5G1oAEIIACgwnFRk/F7w==}
 
   '@gar/promise-retry@1.0.3':
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
@@ -3361,6 +3413,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/courier-prime@5.3.0': {}
+
+  '@fontsource/libre-caslon-text@5.3.0': {}
 
   '@gar/promise-retry@1.0.3': {}
 

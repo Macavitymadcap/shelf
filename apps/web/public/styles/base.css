@@ -1,0 +1,48 @@
+html {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font-typed);
+}
+
+body {
+  min-block-size: 100dvh;
+  font-size: var(--font-size-1);
+  line-height: var(--line);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: var(--font-lineheight-1);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--font-size-5);
+}
+
+h2 {
+  font-size: var(--font-size-4);
+}
+
+a {
+  color: inherit;
+  text-decoration: underline var(--rule-red) 1px;
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
