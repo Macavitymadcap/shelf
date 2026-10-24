@@ -175,8 +175,12 @@ These are the settings milestone 0 had to discover one error at a time.
 - Every element with an `hx-` attribute spreads `{...useHx()}`, which adds
   the response's nonce; `hx-csp` strips htmx from any element without it.
   Every route answers through `render()`, which provides that nonce.
-- Forms use `method="post"` and work without JavaScript; there are no PUT,
-  PATCH or DELETE routes, and deletes post to `…/delete`.
+- Writes go through htmx with the method that fits: `hx-post` creates,
+  `hx-put` saves, `hx-delete` deletes. Each answers with the fragment that
+  replaces its target, and edits happen in place on the work page. There
+  is no fallback for browsers without JavaScript.
+- The swappable parts of the work page answer to fixed ids: `#work`,
+  `#editions`, `#edition-<id>` and `#copy-<id>`.
 - Tap targets are at least 44 px; text contrast clears WCAG AA in both
   schemes.
 
@@ -687,35 +691,38 @@ Notes from milestone 0:
 ## Routes and htmx
 
 Every route returns HTML. Milestones 1 and 2 build everything except the
-covers, lookup and loans routes. Forms only post; a 422 answers a form
-with mistakes, and a 303 follows every successful save.
+covers, lookup and loans routes. A save with mistakes answers 422 with its
+form; everything under `/manage` except the add page answers with a
+fragment.
 
-| Method    | Path                                                             | Auth      | Returns                                                    | In  |
-| --------- | ---------------------------------------------------------------- | --------- | ---------------------------------------------------------- | --- |
-| GET       | `/`                                                              | Public    | Search box, counts by kind, recently added                 | 2   |
-| GET       | `/search?q=&kind=`                                               | Public    | Results; only the results for an htmx partial request      | 2   |
-| GET       | `/works/:id`                                                     | Public    | Work, editions and copies; editing controls when signed in | 2   |
-| GET       | `/people/:id`                                                    | Public    | Everything credited to a person, with the role             | 2   |
-| GET       | `/covers/:key`                                                   | Public    | Image from R2 with long cache headers                      | 4   |
-| GET, POST | `/login`                                                         | Public    | Form; session cookie and redirect                          | 1   |
-| POST      | `/logout`                                                        | Signed in | Session deleted, cookie cleared                            | 1   |
-| GET       | `/manage`                                                        | Signed in | Management home                                            | 1   |
-| GET       | `/manage/add?kind=`                                              | Signed in | Kind choice or add form; barcode and camera from 3         | 2   |
-| POST      | `/manage/lookup`                                                 | Signed in | Candidate list fragment                                    | 3   |
-| POST      | `/manage/works?kind=`                                            | Signed in | Creates work, edition and copy                             | 2   |
-| GET, POST | `/manage/works/:id/edit`, `/manage/works/:id`                    | Signed in | Work form; save                                            | 2   |
-| POST      | `/manage/works/:id/delete`                                       | Signed in | Copies, editions and work deleted                          | 2   |
-| GET, POST | `/manage/works/:id/editions/new`, `/manage/works/:id/editions`   | Signed in | Another edition with its first copy                        | 2   |
-| GET, POST | `/manage/editions/:id/edit`, `/manage/editions/:id`              | Signed in | Edition form; save                                         | 2   |
-| POST      | `/manage/editions/:id/delete`                                    | Signed in | Edition and its copies deleted                             | 2   |
-| GET, POST | `/manage/editions/:id/copies/new`, `/manage/editions/:id/copies` | Signed in | Another copy                                               | 2   |
-| GET, POST | `/manage/copies/:id/edit`, `/manage/copies/:id`                  | Signed in | Copy form; save                                            | 2   |
-| POST      | `/manage/copies/:id/delete`                                      | Signed in | Copy deleted                                               | 2   |
-| GET       | `/manage/credit-row?kind=`                                       | Signed in | One blank credit row                                       | 2   |
-| POST      | `/manage/copies/:id/loans`                                       | Signed in | Loan badge fragment                                        | 4   |
-| POST      | `/manage/loans/:id/return`                                       | Signed in | Badge cleared to available                                 | 4   |
-| GET       | `/manage/loans`                                                  | Signed in | Everything currently out, oldest first                     | 4   |
-| GET       | `/manage/styleguide`                                             | Signed in | The component sheet                                        | 1   |
+| Method           | Path                              | Auth      | Returns                                                    | In  |
+| ---------------- | --------------------------------- | --------- | ---------------------------------------------------------- | --- |
+| GET              | `/`                               | Public    | Search box, counts by kind, recently added                 | 2   |
+| GET              | `/search?q=&kind=`                | Public    | Results; only the results for an htmx partial request      | 2   |
+| GET              | `/works/:id`                      | Public    | Work, editions and copies; editing controls when signed in | 2   |
+| GET              | `/people/:id`                     | Public    | Everything credited to a person, with the role             | 2   |
+| GET              | `/covers/:key`                    | Public    | Image from R2 with long cache headers                      | 4   |
+| GET, POST        | `/login`                          | Public    | Form; session cookie and redirect                          | 1   |
+| POST             | `/logout`                         | Signed in | Session deleted, cookie cleared                            | 1   |
+| GET              | `/manage`                         | Signed in | Management home                                            | 1   |
+| GET              | `/manage/add?kind=`               | Signed in | Kind choice or add page; barcode and camera from 3         | 2   |
+| POST             | `/manage/lookup`                  | Signed in | Candidate list fragment                                    | 3   |
+| POST             | `/manage/works?kind=`             | Signed in | `HX-Location` to the new work, or 422 and the form         | 2   |
+| GET, PUT, DELETE | `/manage/works/:id`               | Signed in | Work card; saved card; `HX-Location` to `/manage`          | 2   |
+| GET              | `/manage/works/:id/edit`          | Signed in | The work card's form                                       | 2   |
+| GET, POST        | `/manage/works/:id/editions`      | Signed in | Every edition card; after adding one                       | 2   |
+| GET              | `/manage/works/:id/editions/new`  | Signed in | Every edition card and a new-edition form                  | 2   |
+| GET, PUT, DELETE | `/manage/editions/:id`            | Signed in | Edition card; saved card; nothing                          | 2   |
+| GET              | `/manage/editions/:id/edit`       | Signed in | The edition card's form                                    | 2   |
+| GET              | `/manage/editions/:id/copies/new` | Signed in | The edition card with a new-copy form                      | 2   |
+| POST             | `/manage/editions/:id/copies`     | Signed in | The edition card with the new copy                         | 2   |
+| GET, PUT, DELETE | `/manage/copies/:id`              | Signed in | Copy row; saved row; the edition card                      | 2   |
+| GET              | `/manage/copies/:id/edit`         | Signed in | The copy row's form                                        | 2   |
+| GET              | `/manage/credit-row?kind=`        | Signed in | One blank credit row                                       | 2   |
+| POST             | `/manage/copies/:id/loans`        | Signed in | Loan badge fragment                                        | 4   |
+| PATCH            | `/manage/loans/:id/return`        | Signed in | Badge cleared to available                                 | 4   |
+| GET              | `/manage/loans`                   | Signed in | Everything currently out, oldest first                     | 4   |
+| GET              | `/manage/styleguide`              | Signed in | The component sheet                                        | 1   |
 
 ### htmx 4 patterns
 
@@ -726,12 +733,17 @@ with mistakes, and a 303 follows every successful save.
 - `render(c, page, { fragment, status })` reads `HX-Request-Type`: `partial`
   gets the fragment, anything else the page, with `Vary: HX-Request-Type`.
 - Inheritance is explicit: `hx-boost:inherited="true"` on every page's
-  `<main>`, so links and forms fetch and swap the body.
-- Boosted forms that fail validation answer 422 with the whole page;
-  `hx-status:422="swap:innerMorph push:false"` keeps focus, typed input and
-  the address. JSX cannot name `hx-status:422`, so it is spread from an
+  `<main>`, so links fetch and swap the body.
+- `render()` answers anything that can be a page; `renderPart()` answers
+  the fragments htmx swaps into a target. Both provide the nonce.
+- Forms send `hx-post` or `hx-put` with a target and swap. A 422 answer is
+  the same form with its messages, morphed in through
+  `hx-status:422="swap:outerMorph"` (or `innerMorph`) so focus and typed
+  input survive. JSX cannot name `hx-status:422`, so it is spread from an
   object.
-- `hx-confirm` on each delete form asks first.
+- A create or a whole-work delete answers with `HX-Location`, which fetches
+  the next page and pushes its address.
+- `hx-confirm` on each delete button asks first.
 - Live search triggers on `input delay:300ms, submit`, without `changed`,
   which never fires on a form.
 - `<hx-partial>` covers multi-target updates, such as a lent copy's row and

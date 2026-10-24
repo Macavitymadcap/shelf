@@ -4,17 +4,19 @@ This guide starts from `main` at `c000f6b`, the end of milestone 1. Part A
 tidies what milestone 1 left behind. Parts B to E build the catalogue:
 the shared vocabulary, full-text search, the queries and saves, htmx under
 the Content Security Policy, and the pages and forms to add, edit and
-delete works, editions and copies by hand. At the end you can enter your
-first 20 items from your phone, and anyone can browse and search them.
+delete works, editions and copies by hand, editing in place on each work's
+page with `hx-put` and `hx-delete`. At the end you can enter your first 20
+items from your phone, and anyone can browse and search them.
 
 Every file and command here was run against a copy of the repository with
 the same tool versions (Vite+ 1.4, pnpm 12.14, Wrangler 4.151, Hono 4.13,
-Drizzle 0.45, htmx 4.0.0, Valibot 1.5): `vp run ready` passes with 51
+Drizzle 0.45, htmx 4.0.0, Valibot 1.5): `vp run ready` passes with 52
 tests across four packages, the milestone 1 smoke script still passes, and
-headless Chrome 153 at 360 by 740 pixels was driven through signing in,
-adding a book with an extra credit row, a rejected save that kept focus and
-typed input, adding and deleting a copy behind a confirmation, and live
-search, with no console errors from the CSP. Two things cannot be tested
+headless Chrome 153 at 360 by 740 pixels was driven through every write:
+adding a record with an extra credit row, a rejected save that kept focus
+and typed input, editing a work, an edition and a copy in place, cancelling
+an edit, adding and deleting copies and editions behind confirmations,
+deleting the work, and live search, with no console errors from the CSP. Two things cannot be tested
 locally: FTS5 on remote D1 and the phone itself, which the gate covers.
 
 ## How this guide is laid out
@@ -38,36 +40,48 @@ checkpoint is the first point where everything type-checks again.
 These settle questions the plan left open, or change it. The revival plan is
 updated to match (Part A, step A4).
 
-| Question                     | Decision                                                                                      | Why                                                                                                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| How htmx reaches the page    | Vendored into `public/vendor/htmx/` by `scripts/vendor.ts`, like Open Props                   | No bundling step; the script loads from `'self'` with the nonce                                                                                     |
-| Extensions                   | `hx-csp` only; `hx-preload` dropped                                                           | Preloading on hover does little on a phone, and every extension is another file to keep nonce-safe                                                  |
-| PUT, PATCH and DELETE routes | None. Every form posts; deletes are `POST …/delete`                                           | HTML forms only send GET and POST. Hono's `methodOverride` re-encodes the body with one value per name, which loses repeated fields such as credits |
-| Failed saves                 | 422 with the whole page; the form's `hx-status:422` morphs it in without changing the address | Focus and typed input survive; the address bar keeps the page you can reload                                                                        |
-| Credits                      | Work-level only; people matched by name, ignoring case                                        | Edition credits wait for provider data in milestone 3                                                                                               |
-| Tracklists                   | One textarea, one track a line: `A1 Title 4:05`                                               | Quick to type and to correct; providers fill it in milestone 3                                                                                      |
-| Board game expansions        | Not in the forms yet                                                                          | `expands_work_id` waits for BGG lookup in milestone 5                                                                                               |
-| Browsing by kind             | `/search?kind=book` with no words lists that kind A to Z                                      | The kind counts on the home page link there; no separate browse pages                                                                               |
+| Question                  | Decision                                                                       | Why                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| How htmx reaches the page | Vendored into `public/vendor/htmx/` by `scripts/vendor.ts`, like Open Props    | No bundling step; the script loads from `'self'` with the nonce                                    |
+| Extensions                | `hx-csp` only; `hx-preload` dropped                                            | Preloading on hover does little on a phone, and every extension is another file to keep nonce-safe |
+| Methods                   | `hx-post` to create, `hx-put` to save, `hx-delete` to delete, on resource URLs | The hypermedia approach: htmx sends the methods HTML forms cannot                                  |
+| Editing                   | In place on the work page: a card or row swaps for its form, and back          | Your plan's routes table asked for fragments; one page holds the whole work                        |
+| Without JavaScript        | No fallback                                                                    | Two users, both on Chrome with JavaScript                                                          |
+| Failed saves              | 422 with the same form; `hx-status:422` morphs it in                           | Focus and typed input survive                                                                      |
+| Credits                   | Work-level only; people matched by name, ignoring case                         | Edition credits wait for provider data in milestone 3                                              |
+| Tracklists                | One textarea, one track a line: `A1 Title 4:05`                                | Quick to type and to correct; providers fill it in milestone 3                                     |
+| Board game expansions     | Not in the forms yet                                                           | `expands_work_id` waits for BGG lookup in milestone 5                                              |
+| Browsing by kind          | `/search?kind=book` with no words lists that kind A to Z                       | The kind counts on the home page link there; no separate browse pages                              |
 
-The routes this milestone builds:
+The routes this milestone builds. Everything under `/manage` except the add
+page answers with a fragment for htmx to swap:
 
-| Method    | Path                                                             | Auth      | Returns                                                            |
-| --------- | ---------------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
-| GET       | `/`                                                              | Public    | Search box, counts by kind, recently added                         |
-| GET       | `/search?q=&kind=`                                               | Public    | Results; only the results when htmx asks for a partial             |
-| GET       | `/works/:id`                                                     | Public    | Work, editions, tracks and copies; editing controls when signed in |
-| GET       | `/people/:id`                                                    | Public    | Everything credited to a person, with the role                     |
-| GET       | `/manage/add?kind=`                                              | Signed in | Kind choice, or the add form for that kind                         |
-| POST      | `/manage/works?kind=`                                            | Signed in | Creates work, edition and copy; 303 to the work, or 422            |
-| GET, POST | `/manage/works/:id/edit`, `/manage/works/:id`                    | Signed in | Work form; save                                                    |
-| POST      | `/manage/works/:id/delete`                                       | Signed in | Deletes copies, editions and work; 303 to `/manage`                |
-| GET, POST | `/manage/works/:id/editions/new`, `/manage/works/:id/editions`   | Signed in | Another edition with its first copy                                |
-| GET, POST | `/manage/editions/:id/edit`, `/manage/editions/:id`              | Signed in | Edition form; save                                                 |
-| POST      | `/manage/editions/:id/delete`                                    | Signed in | Deletes the edition and its copies                                 |
-| GET, POST | `/manage/editions/:id/copies/new`, `/manage/editions/:id/copies` | Signed in | Another copy                                                       |
-| GET, POST | `/manage/copies/:id/edit`, `/manage/copies/:id`                  | Signed in | Copy form; save                                                    |
-| POST      | `/manage/copies/:id/delete`                                      | Signed in | Deletes the copy                                                   |
-| GET       | `/manage/credit-row?kind=`                                       | Signed in | One blank credit row, for "Add a person"                           |
+| Method | Path                              | Auth      | Returns                                                            |
+| ------ | --------------------------------- | --------- | ------------------------------------------------------------------ |
+| GET    | `/`                               | Public    | Search box, counts by kind, recently added                         |
+| GET    | `/search?q=&kind=`                | Public    | Results; only the results when htmx asks for a partial             |
+| GET    | `/works/:id`                      | Public    | Work, editions, tracks and copies; editing controls when signed in |
+| GET    | `/people/:id`                     | Public    | Everything credited to a person, with the role                     |
+| GET    | `/manage/add?kind=`               | Signed in | Kind choice, or the add page for that kind                         |
+| POST   | `/manage/works?kind=`             | Signed in | `HX-Location` to the new work, or 422 and the form                 |
+| GET    | `/manage/works/:id`               | Signed in | The work card                                                      |
+| GET    | `/manage/works/:id/edit`          | Signed in | The work card's form                                               |
+| PUT    | `/manage/works/:id`               | Signed in | The saved work card, or 422 and the form                           |
+| DELETE | `/manage/works/:id`               | Signed in | `HX-Location` to `/manage`                                         |
+| GET    | `/manage/works/:id/editions`      | Signed in | Every edition card                                                 |
+| GET    | `/manage/works/:id/editions/new`  | Signed in | Every edition card and a new-edition form                          |
+| POST   | `/manage/works/:id/editions`      | Signed in | Every edition card, or 422 with the form                           |
+| GET    | `/manage/editions/:id`            | Signed in | The edition card                                                   |
+| GET    | `/manage/editions/:id/edit`       | Signed in | The edition card's form                                            |
+| PUT    | `/manage/editions/:id`            | Signed in | The saved edition card, or 422 and the form                        |
+| DELETE | `/manage/editions/:id`            | Signed in | Nothing; the card is removed                                       |
+| GET    | `/manage/editions/:id/copies/new` | Signed in | The edition card with a new-copy form                              |
+| POST   | `/manage/editions/:id/copies`     | Signed in | The edition card with the new copy, or 422 with the form           |
+| GET    | `/manage/copies/:id`              | Signed in | The copy row                                                       |
+| GET    | `/manage/copies/:id/edit`         | Signed in | The copy row's form                                                |
+| PUT    | `/manage/copies/:id`              | Signed in | The saved copy row, or 422 and the form                            |
+| DELETE | `/manage/copies/:id`              | Signed in | The edition card, one copy fewer                                   |
+| GET    | `/manage/credit-row?kind=`        | Signed in | One blank credit row, for "Add a person"                           |
 
 ## Before you start
 
@@ -284,7 +298,9 @@ Interface conventions sections are the rules. In short:
 - Source files stay under about 100 lines and functions around 10.
 - Tests mark their Arrange, Act and Assert steps with comments.
 - Every element with an `hx-` attribute spreads `useHx()` for its nonce.
-- Forms post with `method="post"`; there are no PUT or DELETE routes.
+- Writes go through htmx with the method that fits (`hx-post`, `hx-put`,
+  `hx-delete`) and answer with the fragment that replaces their target;
+  there is no fallback for browsers without JavaScript.
 - British English in copy and documentation.
 ```
 
@@ -1911,28 +1927,37 @@ import type { Child } from 'hono/jsx';
 import type { AppEnv } from './env.ts';
 import { NonceContext } from './nonce.ts';
 
-// htmx sends HX-Request-Type: partial when it swaps one region; anything else gets
-// the whole page, so links and forms work without JavaScript.
-export const render = (
-  context: Context<AppEnv>,
-  page: Child,
-  options: { fragment?: Child; status?: ContentfulStatusCode } = {},
-) => {
+type Options = { fragment?: Child; status?: ContentfulStatusCode };
+
+// htmx sends HX-Request-Type: partial when it swaps one region; anything else,
+// including a boosted link, gets the whole page.
+export const render = (context: Context<AppEnv>, page: Child, options: Options = {}) => {
   const partial = options.fragment && context.req.header('HX-Request-Type') === 'partial';
-  const nonce = context.get('secureHeadersNonce') ?? '';
   context.header('Vary', 'HX-Request-Type');
-  return context.html(
-    <NonceContext.Provider value={nonce}>
-      {partial ? options.fragment : page}
-    </NonceContext.Provider>,
-    options.status ?? 200,
-  );
+  return renderPart(context, partial ? options.fragment : page, options.status);
 };
+
+// A piece of a page for htmx to swap in. Its hx- elements carry this response's
+// nonce, which hx-csp rewrites to the page's before parsing.
+export const renderPart = (
+  context: Context<AppEnv>,
+  part: Child,
+  status: ContentfulStatusCode = 200,
+) =>
+  context.html(
+    <NonceContext.Provider value={context.get('secureHeadersNonce') ?? ''}>
+      {part}
+    </NonceContext.Provider>,
+    status,
+  );
 ```
 
-Every route now answers through `render`. It provides the nonce, picks the
-page or the fragment, and sends `Vary: HX-Request-Type`, so a browser never
-reuses a cached fragment as a page or the reverse.
+Every route answers through one of these two. `render` is for anything
+that can be a whole page: it picks the page or a fragment and sends
+`Vary: HX-Request-Type`, so a browser never reuses a cached fragment as a
+page or the reverse. `renderPart` is for the pieces htmx swaps into a
+target, such as a card or its form, which are never pages. Both provide
+the nonce.
 
 htmx 4 sends `HX-Request-Type: partial` only when it swaps part of the page.
 Boosted links and forms target the whole body and send `full`, so they get
@@ -2183,10 +2208,31 @@ Every field name is unique across the work, edition and copy sections, so
 the add page posts all three in one flat form and each parser picks out
 its own fields. Kind-specific fields live in one file per kind.
 
-A save that fails validation re-renders the same page with the typed
-values and a message under each field, with status 422. The plan's
-"saved row fragment" is replaced by this: every form is small enough that
-returning the page is simpler and works the same without JavaScript.
+### How writes work
+
+Every write goes through htmx with the method that fits it, and answers
+with the HTML that replaces what was on the page:
+
+| Action            | Request                                 | Answer                                     | Swapped into     |
+| ----------------- | --------------------------------------- | ------------------------------------------ | ---------------- |
+| Add a work        | `hx-post` from the add page             | `HX-Location` to the new work's page       | The whole page   |
+| Edit anything     | `hx-get …/edit`, then `hx-put`          | The form, then the saved card or row       | That card or row |
+| Add a copy        | `hx-get …/copies/new`, then `hx-post`   | The edition card with a form, then without | `#edition-<id>`  |
+| Add an edition    | `hx-get …/editions/new`, then `hx-post` | Every edition, with a form, then without   | `#editions`      |
+| Delete a copy     | `hx-delete`                             | The edition card, one copy fewer           | `#edition-<id>`  |
+| Delete an edition | `hx-delete`                             | Nothing; `hx-swap="delete"` removes it     | `#edition-<id>`  |
+| Delete a work     | `hx-delete`                             | `HX-Location` to `/manage`                 | The whole page   |
+
+A save with mistakes answers 422 with the same form, the typed values and
+a message under each field, and the form morphs it into place. There is no
+fallback for browsers without JavaScript: Shelf has two users, both on
+Chrome.
+
+Hono's `csrf()` checks the `Origin` of every non-GET request with a form
+body, so `hx-put` and `hx-post` are covered as plain form posts were. An
+`hx-delete` has no body, so `csrf()` lets it through; it is still safe,
+because a cross-site `DELETE` from script needs a CORS preflight the app
+never grants, and the `SameSite=Lax` cookie is not sent with it.
 
 ### D1. Atoms
 
@@ -2493,34 +2539,43 @@ export const ActionBar: FC<PropsWithChildren> = ({ children }) => (
 }
 ```
 
-`apps/web/src/components/molecules/delete-form.tsx`:
+`apps/web/src/components/molecules/hx-button.tsx`:
 
 ```tsx
-import type { FC } from 'hono/jsx';
+import type { FC, PropsWithChildren } from 'hono/jsx';
 import { useHx } from '../../nonce.ts';
 import { Button } from '../atoms/button.tsx';
 
-type DeleteFormProps = { action: string; label: string; confirm: string };
+export type Swap = { target: string; swap: 'outerHTML' | 'innerHTML' | 'delete' };
 
-// htmx asks before it posts; without JavaScript the post goes straight through.
-export const DeleteForm: FC<DeleteFormProps> = ({ action, label, confirm }) => (
-  <form class="delete-form" method="post" action={action} hx-confirm={confirm} {...useHx()}>
-    <Button variant="danger">{label}</Button>
-  </form>
+type HxButtonProps = PropsWithChildren<
+  Swap & {
+    method: 'get' | 'delete';
+    url: string;
+    variant?: 'quiet' | 'danger';
+    confirm?: string;
+  }
+>;
+
+// A button that fetches or deletes a resource and swaps the answer into the page.
+export const HxButton: FC<HxButtonProps> = (props) => (
+  <Button
+    variant={props.variant ?? 'quiet'}
+    type="button"
+    {...{ [`hx-${props.method}`]: props.url }}
+    hx-target={props.target}
+    hx-swap={props.swap}
+    hx-confirm={props.confirm}
+    {...useHx()}
+  >
+    {props.children}
+  </Button>
 );
 ```
 
-`apps/web/public/styles/molecules/delete-form.css`:
-
-```css
-.delete-form {
-  display: inline-block;
-}
-```
-
-Each delete is its own small form that posts to a `…/delete` path. Inside
-`<main>` it is boosted, and `hx-confirm` asks first; htmx reads
-`hx-confirm` on a boosted form like any other request.
+Every in-place action is one of these: a `get` that fetches a form or
+puts a card back, or a `delete` with `hx-confirm`. It has no stylesheet of
+its own; it is a `Button`.
 
 `apps/web/src/components/molecules/kind-counts.tsx`:
 
@@ -3341,6 +3396,9 @@ import type { Detail } from '../components/molecules/detail-list.tsx';
 import { copyDetails, editionDetails, editionTitle, workDetails } from './details.ts';
 import { KIND_LABELS, sentence } from './labels.ts';
 
+type EditionRow = WorkDetail['editions'][number];
+type CopyRow = EditionRow['copies'][number];
+
 export type CopyView = { id: string; details: Detail[] };
 
 export type EditionView = {
@@ -3364,6 +3422,19 @@ export type WorkView = {
   editions: EditionView[];
 };
 
+export const toCopyView = (copy: CopyRow): CopyView => ({
+  id: copy.id,
+  details: copyDetails(copy),
+});
+
+export const toEditionView = (edition: EditionRow): EditionView => ({
+  id: edition.id,
+  title: editionTitle(edition),
+  details: editionDetails(edition),
+  tracks: edition.tracks,
+  copies: edition.copies.map(toCopyView),
+});
+
 export const toWorkView = (work: WorkDetail): WorkView => ({
   id: work.id,
   kind: KIND_LABELS[work.kind],
@@ -3376,15 +3447,12 @@ export const toWorkView = (work: WorkDetail): WorkView => ({
   })),
   details: workDetails(work),
   description: work.description,
-  editions: work.editions.map((edition) => ({
-    id: edition.id,
-    title: editionTitle(edition),
-    details: editionDetails(edition),
-    tracks: edition.tracks,
-    copies: edition.copies.map((copy) => ({ id: copy.id, details: copyDetails(copy) })),
-  })),
+  editions: work.editions.map(toEditionView),
 });
 ```
+
+`toEditionView` and `toCopyView` are exported because the routes that
+answer with a single edition card or copy row need them too.
 
 ### D5. Organisms
 
@@ -3484,7 +3552,7 @@ type CreditRowsProps = { kind: Kind; credits: Credit[]; error?: string };
 
 const BLANK: Credit = { name: '', role: '' };
 
-// Saved credits plus two blank rows; with JavaScript, "Add a person" fetches another row.
+// Saved credits plus two blank rows; "Add a person" fetches another row.
 export const CreditRows: FC<CreditRowsProps> = ({ kind, credits, error }) => (
   <div class="credit-rows">
     {error && <p class="credit-rows__error">{error}</p>}
@@ -3540,34 +3608,42 @@ export const CreditRows: FC<CreditRowsProps> = ({ kind, credits, error }) => (
 
 "Add a person" asks `/manage/credit-row` for one more row and appends it
 to the list. Its ids are random, because a row fetched later cannot know
-how many rows are already on the page. Without JavaScript the button does
-nothing; save, and the edit page offers two more blank rows.
+how many rows are already on the page.
 
 `apps/web/src/components/organisms/entry-form.tsx`:
 
 ```tsx
 import type { Child, FC } from 'hono/jsx';
 import { useHx } from '../../nonce.ts';
-import { Button, LinkButton } from '../atoms/button.tsx';
+import { Button } from '../atoms/button.tsx';
 import { Notice } from '../atoms/notice.tsx';
+import type { Swap } from '../molecules/hx-button.tsx';
 
 export type Section = { legend: string; content: Child };
 
+export type Request = Swap & { method: 'post' | 'put'; url: string };
+
 type EntryFormProps = {
-  action: string;
+  request: Request;
   sections: Section[];
   submit: string;
-  cancel: string;
+  cancel: Child;
   invalid?: boolean;
 };
 
-// A 422 response is morphed into the page, so focus and typed input stay where they
-// were, and the address bar keeps the form's URL. Spread because JSX names cannot
-// contain ":422".
-const MORPH_ON_422 = { 'hx-status:422': 'swap:innerMorph push:false' };
+const MORPH = { outerHTML: 'outerMorph', innerHTML: 'innerMorph', delete: 'delete' };
 
-export const EntryForm: FC<EntryFormProps> = ({ action, sections, submit, cancel, invalid }) => (
-  <form class="entry-form" method="post" action={action} {...MORPH_ON_422} {...useHx()}>
+// A 422 answer is morphed into place, so focus and typed input survive. The
+// attributes are spread because JSX names cannot contain ":422".
+const attributes = ({ method, url, target, swap }: Request) => ({
+  [`hx-${method}`]: url,
+  'hx-target': target,
+  'hx-swap': swap,
+  'hx-status:422': `swap:${MORPH[swap]}`,
+});
+
+export const EntryForm: FC<EntryFormProps> = ({ request, sections, submit, cancel, invalid }) => (
+  <form class="entry-form" {...attributes(request)} {...useHx()}>
     {invalid && <Notice tone="error">Some fields need another look.</Notice>}
     {sections.map((section) => (
       <fieldset class="entry-form__section">
@@ -3577,7 +3653,7 @@ export const EntryForm: FC<EntryFormProps> = ({ action, sections, submit, cancel
     ))}
     <p class="entry-form__actions">
       <Button>{submit}</Button>
-      <LinkButton href={cancel}>Cancel</LinkButton>
+      {cancel}
     </p>
   </form>
 );
@@ -3614,12 +3690,12 @@ export const EntryForm: FC<EntryFormProps> = ({ action, sections, submit, cancel
 }
 ```
 
-A boosted form swaps the whole body. On a 422, `hx-status:422` changes that
-swap to `innerMorph`, which updates the page in place and keeps focus,
-scroll and typed values; `push:false` keeps the address bar on the form's
-page rather than the URL it posted to, which would 404 on reload. A
-successful save answers 303, `fetch` follows it, and htmx pushes the work
-page's address.
+Each form is told its method, URL, target and swap. On a 422,
+`hx-status:422` turns `outerHTML` into `outerMorph` (and `innerHTML` into
+`innerMorph`), which updates the form in place and keeps focus, scroll and
+typed values. A 200 swaps normally, replacing the form with the saved
+card. Explicit `hx-post` and `hx-put` requests never push to the address
+bar, so a failed save leaves the address alone.
 
 `apps/web/src/components/organisms/search-form.tsx`:
 
@@ -3694,6 +3770,39 @@ The live form triggers on `input` with a 300 ms debounce. Leave out the
 triggering element's value, and a form has none, so the search would
 never fire.
 
+`apps/web/src/components/organisms/index-card.tsx` takes an `id`, so htmx
+can target a card:
+
+```tsx
+import type { Child, FC, PropsWithChildren } from 'hono/jsx';
+import { joinClassNames } from '../join-class-names.ts';
+
+type IndexCardProps = PropsWithChildren<{
+  title: Child;
+  corner?: string;
+  byline?: string;
+  level?: 1 | 2;
+  class?: string;
+  // Lets htmx target this card, for example to swap it for its edit form.
+  id?: string;
+}>;
+
+export const IndexCard: FC<IndexCardProps> = (props) => {
+  const { title, corner, byline, level = 2, children } = props;
+  const Heading = level === 1 ? 'h1' : 'h2';
+  return (
+    <article class={joinClassNames('index-card', props.class)} id={props.id}>
+      {corner && <p class="index-card__corner">{corner}</p>}
+      <header class="index-card__header">
+        {byline && <p>{byline}</p>}
+        <Heading class="index-card__title">{title}</Heading>
+      </header>
+      {children}
+    </article>
+  );
+};
+```
+
 `apps/web/src/components/organisms/work-card.tsx`:
 
 ```tsx
@@ -3706,7 +3815,13 @@ type WorkCardProps = PropsWithChildren<{ work: WorkView }>;
 
 // The work's own card; children are the signed-in actions, if any.
 export const WorkCard: FC<WorkCardProps> = ({ work, children }) => (
-  <IndexCard level={1} corner={work.kind} byline={work.subtitle ?? undefined} title={work.title}>
+  <IndexCard
+    id="work"
+    level={1}
+    corner={work.kind}
+    byline={work.subtitle ?? undefined}
+    title={work.title}
+  >
     {work.credits.length > 0 && (
       <ul class="work-card__credits">
         {work.credits.map((credit) => (
@@ -3746,26 +3861,22 @@ import { IndexCard } from './index-card.tsx';
 
 type EditionCardProps = {
   edition: EditionView;
-  // Signed-in controls: one set for the edition, one per copy.
   actions?: Child;
-  copyActions?: (copy: CopyView) => Child;
+  // One copy row each; the page decides whether a row shows its controls or a form.
+  copyRow: (copy: CopyView) => Child;
+  // A form for another copy, shown under the list while it is being added.
+  adding?: Child;
 };
 
-export const EditionCard: FC<EditionCardProps> = ({ edition, actions, copyActions }) => (
-  <IndexCard corner="Edition" title={edition.title}>
+const heading = (count: number) => (count === 1 ? 'One copy' : `${count} copies`);
+
+export const EditionCard: FC<EditionCardProps> = ({ edition, actions, copyRow, adding }) => (
+  <IndexCard id={`edition-${edition.id}`} corner="Edition" title={edition.title}>
     {edition.details.length > 0 && <DetailList details={edition.details} />}
     {edition.tracks.length > 0 && <TrackList tracks={edition.tracks} />}
-    <h3 class="edition-card__heading">
-      {edition.copies.length === 1 ? 'One copy' : `${edition.copies.length} copies`}
-    </h3>
-    <ol class="edition-card__copies">
-      {edition.copies.map((copy) => (
-        <li class="edition-card__copy">
-          <DetailList details={copy.details} />
-          {copyActions?.(copy)}
-        </li>
-      ))}
-    </ol>
+    <h3 class="edition-card__heading">{heading(edition.copies.length)}</h3>
+    <ol class="edition-card__copies">{edition.copies.map(copyRow)}</ol>
+    {adding}
     {actions}
   </IndexCard>
 );
@@ -3782,15 +3893,70 @@ export const EditionCard: FC<EditionCardProps> = ({ edition, actions, copyAction
   display: grid;
   gap: var(--size-3);
 }
+```
 
+`apps/web/src/components/organisms/copy-row.tsx`:
+
+```tsx
+import type { Child, FC } from 'hono/jsx';
+import type { CopyView } from '../../views/work.ts';
+import { DetailList } from '../molecules/detail-list.tsx';
+
+// One copy, or its edit form; either way it answers to #copy-<id>.
+export const CopyRow: FC<{ copy: CopyView; actions?: Child; form?: Child }> = ({
+  copy,
+  actions,
+  form,
+}) => (
+  <li class="copy-row" id={`copy-${copy.id}`}>
+    {form ?? (
+      <>
+        <DetailList details={copy.details} />
+        {actions}
+      </>
+    )}
+  </li>
+);
+```
+
+`apps/web/public/styles/organisms/copy-row.css`:
+
+```css
 /* Each copy is a short entry under a dashed rule, like a line drawn across the card. */
-.edition-card__copy {
+.copy-row {
   display: grid;
   gap: var(--size-2);
   padding-block-start: var(--size-2);
   border-block-start: 1px dashed var(--ink-muted);
 }
 ```
+
+`apps/web/src/components/organisms/edition-list.tsx`:
+
+```tsx
+import type { FC, PropsWithChildren } from 'hono/jsx';
+
+// The editions of a work; htmx replaces its contents when one is added.
+export const EditionList: FC<PropsWithChildren> = ({ children }) => (
+  <div class="edition-list" id="editions">
+    {children}
+  </div>
+);
+```
+
+`apps/web/public/styles/organisms/edition-list.css`:
+
+```css
+.edition-list {
+  display: grid;
+  gap: var(--size-4);
+}
+```
+
+The work card, the edition list, each edition card and each copy row
+answer to fixed ids (`#work`, `#editions`, `#edition-<id>`, `#copy-<id>`).
+Those ids are the whole contract between the buttons in Part E and the
+fragments the routes return.
 
 ### D6. Import the new stylesheets
 
@@ -3822,7 +3988,6 @@ export const EditionCard: FC<EditionCardProps> = ({ edition, actions, copyAction
 @import url('molecules/detail-list.css') layer(molecules);
 @import url('molecules/sign-out-form.css') layer(molecules);
 @import url('molecules/action-bar.css') layer(molecules);
-@import url('molecules/delete-form.css') layer(molecules);
 @import url('molecules/kind-counts.css') layer(molecules);
 @import url('molecules/track-list.css') layer(molecules);
 
@@ -3836,6 +4001,8 @@ export const EditionCard: FC<EditionCardProps> = ({ edition, actions, copyAction
 @import url('organisms/credit-rows.css') layer(organisms);
 @import url('organisms/work-card.css') layer(organisms);
 @import url('organisms/edition-card.css') layer(organisms);
+@import url('organisms/copy-row.css') layer(organisms);
+@import url('organisms/edition-list.css') layer(organisms);
 
 @import url('templates/page.css') layer(templates);
 ```
@@ -3858,10 +4025,10 @@ git commit -m "feat(web): form layer, views and catalogue components"
 
 ## Part E: Pages, routes and tests
 
-### E1. Pages
+### E1. Whole pages
 
 `apps/web/src/pages/sections.tsx` builds the three form sections every add
-and edit page is made of:
+and edit form is made of:
 
 ```tsx
 import type { Kind } from '@shelf/catalogue';
@@ -3904,29 +4071,47 @@ export const copySection = (kind: Kind, { values, errors }: FormState): Section 
 });
 ```
 
-`apps/web/src/pages/entry.tsx`:
+`apps/web/src/pages/entry.tsx` is the add page, the one write that has a
+page of its own:
 
 ```tsx
 import type { SessionUser } from '@shelf/auth';
-import { EntryForm, type Section } from '../components/organisms/entry-form.tsx';
+import type { Kind } from '@shelf/catalogue';
+import { LinkButton } from '../components/atoms/button.tsx';
+import { EntryForm } from '../components/organisms/entry-form.tsx';
 import { IndexCard } from '../components/organisms/index-card.tsx';
 import { Page } from '../components/templates/page.tsx';
+import { KIND_LABELS } from '../views/labels.ts';
+import { copySection, editionSection, workSection, type FormState } from './sections.tsx';
 
-type EntryPageProps = {
+// The form alone is what a 422 answer sends back; it replaces itself.
+export const NewWorkForm = ({ kind, state }: { kind: Kind; state: FormState }) => (
+  <EntryForm
+    request={{
+      method: 'post',
+      url: `/manage/works?kind=${kind}`,
+      target: 'this',
+      swap: 'outerHTML',
+    }}
+    sections={[workSection(kind, state), editionSection(kind, state), copySection(kind, state)]}
+    submit="Save"
+    cancel={<LinkButton href="/manage">Cancel</LinkButton>}
+    invalid={Object.keys(state.errors).length > 0}
+  />
+);
+
+export const NewWorkPage = ({
+  user,
+  kind,
+  state,
+}: {
   user: SessionUser;
-  title: string;
-  action: string;
-  submit: string;
-  cancel: string;
-  sections: Section[];
-  invalid: boolean;
-};
-
-// Every add and edit page: one card holding one form.
-export const EntryPage = ({ user, title, invalid, ...form }: EntryPageProps) => (
-  <Page title={`${title} - Shelf`} user={user}>
-    <IndexCard level={1} corner="Staff only" title={title}>
-      <EntryForm {...form} invalid={invalid} />
+  kind: Kind;
+  state: FormState;
+}) => (
+  <Page title="Add to Shelf" user={user}>
+    <IndexCard level={1} corner="Staff only" title={`Add a ${KIND_LABELS[kind].toLowerCase()}`}>
+      <NewWorkForm kind={kind} state={state} />
     </IndexCard>
   </Page>
 );
@@ -4001,68 +4186,6 @@ export const SearchPage = (props: SearchProps & { user: SessionUser | null }) =>
 
 The `Notice` has `role="status"`, so a screen reader announces "3 matches."
 each time the results change under the cursor.
-
-`apps/web/src/pages/work.tsx`:
-
-```tsx
-import type { SessionUser } from '@shelf/auth';
-import { LinkButton } from '../components/atoms/button.tsx';
-import { ActionBar } from '../components/molecules/action-bar.tsx';
-import { DeleteForm } from '../components/molecules/delete-form.tsx';
-import { EditionCard } from '../components/organisms/edition-card.tsx';
-import { WorkCard } from '../components/organisms/work-card.tsx';
-import { Page } from '../components/templates/page.tsx';
-import type { CopyView, EditionView, WorkView } from '../views/work.ts';
-
-const WorkActions = ({ work }: { work: WorkView }) => (
-  <ActionBar>
-    <LinkButton href={`/manage/works/${work.id}/edit`}>Edit work</LinkButton>
-    <LinkButton href={`/manage/works/${work.id}/editions/new`}>Add an edition</LinkButton>
-    <DeleteForm
-      action={`/manage/works/${work.id}/delete`}
-      label="Delete work"
-      confirm={`Delete ${work.title}, every edition and every copy?`}
-    />
-  </ActionBar>
-);
-
-const EditionActions = ({ edition }: { edition: EditionView }) => (
-  <ActionBar>
-    <LinkButton href={`/manage/editions/${edition.id}/edit`}>Edit edition</LinkButton>
-    <LinkButton href={`/manage/editions/${edition.id}/copies/new`}>Add a copy</LinkButton>
-    <DeleteForm
-      action={`/manage/editions/${edition.id}/delete`}
-      label="Delete edition"
-      confirm="Delete this edition and its copies?"
-    />
-  </ActionBar>
-);
-
-const CopyActions = ({ copy }: { copy: CopyView }) => (
-  <ActionBar>
-    <LinkButton href={`/manage/copies/${copy.id}/edit`}>Edit copy</LinkButton>
-    <DeleteForm
-      action={`/manage/copies/${copy.id}/delete`}
-      label="Delete copy"
-      confirm="Delete this copy?"
-    />
-  </ActionBar>
-);
-
-// Editing controls appear only for a signed-in user.
-export const WorkPage = ({ user, work }: { user: SessionUser | null; work: WorkView }) => (
-  <Page title={`${work.title} - Shelf`} user={user}>
-    <WorkCard work={work}>{user && <WorkActions work={work} />}</WorkCard>
-    {work.editions.map((edition) => (
-      <EditionCard
-        edition={edition}
-        actions={user && <EditionActions edition={edition} />}
-        copyActions={user ? (copy) => <CopyActions copy={copy} /> : undefined}
-      />
-    ))}
-  </Page>
-);
-```
 
 `apps/web/src/pages/person.tsx`:
 
@@ -4215,10 +4338,10 @@ import type { SessionUser } from '@shelf/auth';
 import { Button, LinkButton } from '../components/atoms/button.tsx';
 import { Notice } from '../components/atoms/notice.tsx';
 import { ActionBar } from '../components/molecules/action-bar.tsx';
-import { DeleteForm } from '../components/molecules/delete-form.tsx';
 import { Field, SelectField, TextareaField } from '../components/molecules/field.tsx';
 import { KindCounts } from '../components/molecules/kind-counts.tsx';
 import { CreditRows } from '../components/organisms/credit-rows.tsx';
+import { CopyRow } from '../components/organisms/copy-row.tsx';
 import { EditionCard } from '../components/organisms/edition-card.tsx';
 import { IndexCard } from '../components/organisms/index-card.tsx';
 import { ItemList } from '../components/organisms/item-list.tsx';
@@ -4239,7 +4362,9 @@ const Controls = () => (
     <ActionBar>
       <Button>Save item</Button>
       <LinkButton href="#">Cancel</LinkButton>
-      <DeleteForm action="#" label="Delete copy" confirm="Delete this copy?" />
+      <Button variant="danger" type="button">
+        Delete copy
+      </Button>
     </ActionBar>
   </IndexCard>
 );
@@ -4253,14 +4378,331 @@ export const StyleguidePage = ({ user }: { user: SessionUser }) => (
     <IndexCard corner="Organisms" title="Credit rows">
       <CreditRows kind="book" credits={[{ name: 'Alan Moore', role: 'writer' }]} />
     </IndexCard>
-    <EditionCard edition={EDITION} />
+    <EditionCard edition={EDITION} copyRow={(copy) => <CopyRow copy={copy} />} />
     <ItemList items={ITEMS} empty="Nothing is catalogued yet." />
     <ItemList items={[]} empty="Nothing is catalogued yet." />
   </Page>
 );
 ```
 
-### E2. Routes
+### E2. The work page and its parts
+
+The work page is assembled from parts, and each part is also what a route
+returns when htmx swaps it. The signed-in controls on each part name the
+URL to call and the id to swap.
+
+`apps/web/src/pages/copy-part.tsx`:
+
+```tsx
+import { ActionBar } from '../components/molecules/action-bar.tsx';
+import { HxButton } from '../components/molecules/hx-button.tsx';
+import { CopyRow } from '../components/organisms/copy-row.tsx';
+import type { CopyView } from '../views/work.ts';
+
+// A copy and its controls; Delete answers with the whole edition card, so the
+// copy count stays right.
+type CopyPartProps = { copy: CopyView; editionId: string; signedIn: boolean };
+
+export const CopyPart = ({ copy, editionId, signedIn }: CopyPartProps) => {
+  const actions = signedIn && (
+    <ActionBar>
+      <HxButton
+        method="get"
+        url={`/manage/copies/${copy.id}/edit`}
+        target={`#copy-${copy.id}`}
+        swap="outerHTML"
+      >
+        Edit copy
+      </HxButton>
+      <HxButton
+        method="delete"
+        url={`/manage/copies/${copy.id}`}
+        target={`#edition-${editionId}`}
+        swap="outerHTML"
+        variant="danger"
+        confirm="Delete this copy?"
+      >
+        Delete copy
+      </HxButton>
+    </ActionBar>
+  );
+  return <CopyRow copy={copy} actions={actions} />;
+};
+```
+
+`apps/web/src/pages/edition-part.tsx`:
+
+```tsx
+import type { Child } from 'hono/jsx';
+import { ActionBar } from '../components/molecules/action-bar.tsx';
+import { HxButton } from '../components/molecules/hx-button.tsx';
+import { EditionCard } from '../components/organisms/edition-card.tsx';
+import type { EditionView } from '../views/work.ts';
+import { CopyPart } from './copy-part.tsx';
+
+const EditionActions = ({ edition }: { edition: EditionView }) => {
+  const card = `#edition-${edition.id}`;
+  return (
+    <ActionBar>
+      <HxButton
+        method="get"
+        url={`/manage/editions/${edition.id}/edit`}
+        target={card}
+        swap="outerHTML"
+      >
+        Edit edition
+      </HxButton>
+      <HxButton
+        method="get"
+        url={`/manage/editions/${edition.id}/copies/new`}
+        target={card}
+        swap="outerHTML"
+      >
+        Add a copy
+      </HxButton>
+      <HxButton
+        method="delete"
+        url={`/manage/editions/${edition.id}`}
+        target={card}
+        swap="delete"
+        variant="danger"
+        confirm="Delete this edition and its copies?"
+      >
+        Delete edition
+      </HxButton>
+    </ActionBar>
+  );
+};
+
+type EditionPartProps = { edition: EditionView; signedIn: boolean; adding?: Child };
+
+export const EditionPart = ({ edition, signedIn, adding }: EditionPartProps) => (
+  <EditionCard
+    edition={edition}
+    actions={signedIn && !adding && <EditionActions edition={edition} />}
+    copyRow={(copy) => <CopyPart copy={copy} editionId={edition.id} signedIn={signedIn} />}
+    adding={adding}
+  />
+);
+```
+
+While a copy is being added, the edition's own buttons are hidden, so the
+card shows one form at a time.
+
+`apps/web/src/pages/work-parts.tsx`:
+
+```tsx
+import type { Child } from 'hono/jsx';
+import { ActionBar } from '../components/molecules/action-bar.tsx';
+import { HxButton } from '../components/molecules/hx-button.tsx';
+import { WorkCard } from '../components/organisms/work-card.tsx';
+import type { WorkView } from '../views/work.ts';
+import { EditionPart } from './edition-part.tsx';
+
+// The pieces of a work page that htmx swaps. Each answers to a fixed id:
+// #work, #editions, #edition-<id> and #copy-<id>.
+
+const WorkActions = ({ work }: { work: WorkView }) => (
+  <ActionBar>
+    <HxButton method="get" url={`/manage/works/${work.id}/edit`} target="#work" swap="outerHTML">
+      Edit work
+    </HxButton>
+    <HxButton
+      method="get"
+      url={`/manage/works/${work.id}/editions/new`}
+      target="#editions"
+      swap="innerHTML"
+    >
+      Add an edition
+    </HxButton>
+    <HxButton
+      method="delete"
+      url={`/manage/works/${work.id}`}
+      target="#work"
+      swap="outerHTML"
+      variant="danger"
+      confirm={`Delete ${work.title}, every edition and every copy?`}
+    >
+      Delete work
+    </HxButton>
+  </ActionBar>
+);
+
+export const WorkPart = ({ work, signedIn }: { work: WorkView; signedIn: boolean }) => (
+  <WorkCard work={work}>{signedIn && <WorkActions work={work} />}</WorkCard>
+);
+
+type EditionsPartProps = { work: WorkView; signedIn: boolean; adding?: Child };
+
+// The contents of #editions: every edition, then a new-edition form while one is being added.
+export const EditionsPart = ({ work, signedIn, adding }: EditionsPartProps) => (
+  <>
+    {work.editions.map((edition) => (
+      <EditionPart edition={edition} signedIn={signedIn} />
+    ))}
+    {adding}
+  </>
+);
+```
+
+`apps/web/src/pages/work.tsx`:
+
+```tsx
+import type { SessionUser } from '@shelf/auth';
+import { EditionList } from '../components/organisms/edition-list.tsx';
+import { Page } from '../components/templates/page.tsx';
+import type { WorkView } from '../views/work.ts';
+import { EditionsPart, WorkPart } from './work-parts.tsx';
+
+// Editing controls appear only for a signed-in user, and edit in place.
+export const WorkPage = ({ user, work }: { user: SessionUser | null; work: WorkView }) => (
+  <Page title={`${work.title} - Shelf`} user={user}>
+    <WorkPart work={work} signedIn={user !== null} />
+    <EditionList>
+      <EditionsPart work={work} signedIn={user !== null} />
+    </EditionList>
+  </Page>
+);
+```
+
+The forms that take a part's place:
+
+`apps/web/src/pages/in-place-form.tsx`:
+
+```tsx
+import { HxButton } from '../components/molecules/hx-button.tsx';
+import { EntryForm, type Request, type Section } from '../components/organisms/entry-form.tsx';
+import type { FormState } from './sections.tsx';
+
+type FormProps = { request: Request; sections: Section[]; state: FormState; cancel: string };
+
+// Every in-place form: Cancel fetches the resource back into the same place.
+export const InPlaceForm = ({ request, sections, state, cancel }: FormProps) => (
+  <EntryForm
+    request={request}
+    sections={sections}
+    submit="Save"
+    invalid={Object.keys(state.errors).length > 0}
+    cancel={
+      <HxButton method="get" url={cancel} target={request.target} swap={request.swap}>
+        Cancel
+      </HxButton>
+    }
+  />
+);
+```
+
+Cancel is a `GET` of the resource itself: `/manage/works/:id` answers with
+the work card, `/manage/copies/:id` with the copy row, and so on. Nothing
+on the page has to remember what was there before the form.
+
+`apps/web/src/pages/work-forms.tsx`:
+
+```tsx
+import type { EditionDetail, WorkDetail } from '@shelf/db';
+import { IndexCard } from '../components/organisms/index-card.tsx';
+import { InPlaceForm } from './in-place-form.tsx';
+import { copySection, editionSection, workSection, type FormState } from './sections.tsx';
+
+export const WorkEditPart = ({ work, state }: { work: WorkDetail; state: FormState }) => (
+  <IndexCard id="work" level={1} corner="Editing" title={`Edit ${work.title}`}>
+    <InPlaceForm
+      request={{
+        method: 'put',
+        url: `/manage/works/${work.id}`,
+        target: '#work',
+        swap: 'outerHTML',
+      }}
+      sections={[workSection(work.kind, state)]}
+      state={state}
+      cancel={`/manage/works/${work.id}`}
+    />
+  </IndexCard>
+);
+
+export const EditionEditPart = ({
+  edition,
+  state,
+}: {
+  edition: EditionDetail;
+  state: FormState;
+}) => (
+  <IndexCard id={`edition-${edition.id}`} corner="Editing" title="Edit edition">
+    <InPlaceForm
+      request={{
+        method: 'put',
+        url: `/manage/editions/${edition.id}`,
+        target: `#edition-${edition.id}`,
+        swap: 'outerHTML',
+      }}
+      sections={[editionSection(edition.kind, state)]}
+      state={state}
+      cancel={`/manage/editions/${edition.id}`}
+    />
+  </IndexCard>
+);
+
+export const NewEditionForm = ({ work, state }: { work: WorkDetail; state: FormState }) => (
+  <IndexCard corner="Adding" title="Another edition">
+    <InPlaceForm
+      request={{
+        method: 'post',
+        url: `/manage/works/${work.id}/editions`,
+        target: '#editions',
+        swap: 'innerHTML',
+      }}
+      sections={[editionSection(work.kind, state), copySection(work.kind, state)]}
+      state={state}
+      cancel={`/manage/works/${work.id}/editions`}
+    />
+  </IndexCard>
+);
+```
+
+`apps/web/src/pages/copy-forms.tsx`:
+
+```tsx
+import type { CopyDetail, EditionDetail } from '@shelf/db';
+import { CopyRow } from '../components/organisms/copy-row.tsx';
+import type { Request } from '../components/organisms/entry-form.tsx';
+import { toCopyView } from '../views/work.ts';
+import { InPlaceForm } from './in-place-form.tsx';
+import { copySection, type FormState } from './sections.tsx';
+
+export const NewCopyForm = ({ edition, state }: { edition: EditionDetail; state: FormState }) => (
+  <InPlaceForm
+    request={{
+      method: 'post',
+      url: `/manage/editions/${edition.id}/copies`,
+      target: `#edition-${edition.id}`,
+      swap: 'outerHTML',
+    }}
+    sections={[copySection(edition.kind, state)]}
+    state={state}
+    cancel={`/manage/editions/${edition.id}`}
+  />
+);
+
+export const CopyEditPart = ({ copy, state }: { copy: CopyDetail; state: FormState }) => {
+  const request: Request = {
+    method: 'put',
+    url: `/manage/copies/${copy.id}`,
+    target: `#copy-${copy.id}`,
+    swap: 'outerHTML',
+  };
+  const form = (
+    <InPlaceForm
+      request={request}
+      sections={[copySection(copy.kind, state)]}
+      state={state}
+      cancel={`/manage/copies/${copy.id}`}
+    />
+  );
+  return <CopyRow copy={toCopyView(copy)} form={form} />;
+};
+```
+
+### E3. Routes
 
 `apps/web/src/routes/kind.ts`:
 
@@ -4276,26 +4718,45 @@ export const asKind = (value: string | undefined): Kind | undefined =>
 ```tsx
 import type { Context } from 'hono';
 import type { AppEnv } from '../env.ts';
-import type { Section } from '../components/organisms/entry-form.tsx';
-import type { FieldErrors } from '../forms/form-data.ts';
-import { EntryPage } from '../pages/entry.tsx';
-import { render } from '../render.tsx';
+import type { FieldErrors, FormValues } from '../forms/form-data.ts';
+import type { FormState } from '../pages/sections.tsx';
 
-export type Entry = { title: string; action: string; cancel: string; sections: Section[] };
+export const fresh = (values: FormValues): FormState => ({ values, errors: {} });
 
-// An add or edit page. With errors it answers 422, which the form morphs into place.
-export const renderEntry = (context: Context<AppEnv>, entry: Entry, errors: FieldErrors = {}) => {
-  const invalid = Object.keys(errors).length > 0;
-  const page = <EntryPage user={context.var.user!} submit="Save" invalid={invalid} {...entry} />;
-  return render(context, page, { status: invalid ? 422 : 200 });
+// A form with mistakes answers 422, which the form morphs into place.
+export const statusOf = (errors: FieldErrors) => (Object.keys(errors).length > 0 ? 422 : 200);
+
+// After a create or a delete, htmx fetches this path and pushes it to the address bar.
+export const relocate = (context: Context<AppEnv>, path: string) => {
+  context.header('HX-Location', path);
+  return context.body(null, 200);
 };
-
-export const seeOther = (context: Context<AppEnv>, path: string) => context.redirect(path, 303);
 ```
 
-Every add and edit route follows the same shape: load what it edits (404
-if missing), read the form, parse it, and either re-render with the errors
-or save and answer 303.
+`HX-Location` makes htmx fetch the path, swap it in as a boosted
+navigation would and push it to the address bar. It is how a create or a
+whole-work delete moves you to another page without a full reload.
+
+`apps/web/src/routes/load.ts`:
+
+```ts
+import { getEdition, getWork, type Db } from '@shelf/db';
+import { toEditionView, toWorkView } from '../views/work.ts';
+
+// A work's view after a change, for the fragment that shows it.
+export const workView = async (db: Db, id: string) => {
+  const work = await getWork(db, id);
+  return work ? toWorkView(work) : null;
+};
+
+// One edition with its copies, read through its work so the copies come too.
+export const editionView = async (db: Db, id: string) => {
+  const edition = await getEdition(db, id);
+  const work = edition && (await getWork(db, edition.workId));
+  const found = work?.editions.find((candidate) => candidate.id === id);
+  return found ? toEditionView(found) : null;
+};
+```
 
 `apps/web/src/routes/catalogue.tsx`:
 
@@ -4357,41 +4818,32 @@ catalogueRoutes.get('/people/:id', async (context) => {
 `apps/web/src/routes/works.tsx`:
 
 ```tsx
-import type { Kind } from '@shelf/catalogue';
-import { createWork, deleteWork, getWork, updateWork, type WorkDetail } from '@shelf/db';
+import { createWork, deleteWork, getWork, updateWork } from '@shelf/db';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env.ts';
 import { FORM_DEFAULTS } from '../forms/defaults.ts';
 import { readForm } from '../forms/form-data.ts';
 import { parseNewWork } from '../forms/new-entry.ts';
 import { parseWork, workValues } from '../forms/work.ts';
+import { NewWorkForm, NewWorkPage } from '../pages/entry.tsx';
 import { ChooseKindPage } from '../pages/manage.tsx';
-import { copySection, editionSection, workSection, type FormState } from '../pages/sections.tsx';
-import { render } from '../render.tsx';
-import { KIND_LABELS } from '../views/labels.ts';
-import { renderEntry, seeOther, type Entry } from './entry.tsx';
+import { WorkEditPart } from '../pages/work-forms.tsx';
+import { WorkPart } from '../pages/work-parts.tsx';
+import { render, renderPart } from '../render.tsx';
+import { fresh, relocate, statusOf } from './entry.tsx';
 import { asKind } from './kind.ts';
+import { workView } from './load.ts';
 
 export const workRoutes = new Hono<AppEnv>();
 
-const newWork = (kind: Kind, state: FormState): Entry => ({
-  title: `Add a ${KIND_LABELS[kind].toLowerCase()}`,
-  action: `/manage/works?kind=${kind}`,
-  cancel: '/manage',
-  sections: [workSection(kind, state), editionSection(kind, state), copySection(kind, state)],
-});
-
-const editWork = (work: WorkDetail, state: FormState): Entry => ({
-  title: `Edit ${work.title}`,
-  action: `/manage/works/${work.id}`,
-  cancel: `/works/${work.id}`,
-  sections: [workSection(work.kind, state)],
-});
-
 workRoutes.get('/add', (context) => {
+  const user = context.var.user!;
   const kind = asKind(context.req.query('kind'));
-  if (!kind) return render(context, <ChooseKindPage user={context.var.user!} />);
-  return renderEntry(context, newWork(kind, { values: FORM_DEFAULTS[kind], errors: {} }));
+  if (!kind) return render(context, <ChooseKindPage user={user} />);
+  return render(
+    context,
+    <NewWorkPage user={user} kind={kind} state={fresh(FORM_DEFAULTS[kind])} />,
+  );
 });
 
 workRoutes.post('/works', async (context) => {
@@ -4399,107 +4851,149 @@ workRoutes.post('/works', async (context) => {
   if (!kind) return context.notFound();
   const values = await readForm(context);
   const parsed = parseNewWork(values, kind);
-  if (!parsed.ok)
-    return renderEntry(context, newWork(kind, { values, errors: parsed.errors }), parsed.errors);
-  return seeOther(context, `/works/${await createWork(context.var.db, parsed.value)}`);
+  if (parsed.ok)
+    return relocate(context, `/works/${await createWork(context.var.db, parsed.value)}`);
+  const state = { values, errors: parsed.errors };
+  return renderPart(context, <NewWorkForm kind={kind} state={state} />, 422);
+});
+
+workRoutes.get('/works/:id', async (context) => {
+  const work = await workView(context.var.db, context.req.param('id'));
+  if (!work) return context.notFound();
+  return renderPart(context, <WorkPart work={work} signedIn />);
 });
 
 workRoutes.get('/works/:id/edit', async (context) => {
   const work = await getWork(context.var.db, context.req.param('id'));
   if (!work) return context.notFound();
-  return renderEntry(context, editWork(work, { values: workValues(work), errors: {} }));
+  return renderPart(context, <WorkEditPart work={work} state={fresh(workValues(work))} />);
 });
 
-workRoutes.post('/works/:id', async (context) => {
+workRoutes.put('/works/:id', async (context) => {
   const work = await getWork(context.var.db, context.req.param('id'));
   if (!work) return context.notFound();
   const values = await readForm(context);
   const parsed = parseWork(values, work.kind);
-  if (!parsed.ok)
-    return renderEntry(context, editWork(work, { values, errors: parsed.errors }), parsed.errors);
+  if (!parsed.ok) {
+    const state = { values, errors: parsed.errors };
+    return renderPart(context, <WorkEditPart work={work} state={state} />, statusOf(state.errors));
+  }
   await updateWork(context.var.db, work.id, parsed.value);
-  return seeOther(context, `/works/${work.id}`);
+  return renderPart(
+    context,
+    <WorkPart work={(await workView(context.var.db, work.id))!} signedIn />,
+  );
 });
 
-workRoutes.post('/works/:id/delete', async (context) => {
+workRoutes.delete('/works/:id', async (context) => {
   await deleteWork(context.var.db, context.req.param('id'));
-  return seeOther(context, '/manage');
+  return relocate(context, '/manage');
+});
+```
+
+`apps/web/src/routes/work-editions.tsx`:
+
+```tsx
+import { addEdition, getWork } from '@shelf/db';
+import { Hono } from 'hono';
+import type { AppEnv } from '../env.ts';
+import { FORM_DEFAULTS } from '../forms/defaults.ts';
+import { readForm } from '../forms/form-data.ts';
+import { parseNewEdition } from '../forms/new-entry.ts';
+import { NewEditionForm } from '../pages/work-forms.tsx';
+import { EditionsPart } from '../pages/work-parts.tsx';
+import { renderPart } from '../render.tsx';
+import { fresh } from './entry.tsx';
+import { workView } from './load.ts';
+
+// A work's editions as one region, #editions, which adding an edition replaces.
+export const workEditionRoutes = new Hono<AppEnv>();
+
+workEditionRoutes.get('/works/:id/editions', async (context) => {
+  const work = await workView(context.var.db, context.req.param('id'));
+  if (!work) return context.notFound();
+  return renderPart(context, <EditionsPart work={work} signedIn />);
+});
+
+workEditionRoutes.get('/works/:id/editions/new', async (context) => {
+  const work = await getWork(context.var.db, context.req.param('id'));
+  if (!work) return context.notFound();
+  const form = <NewEditionForm work={work} state={fresh(FORM_DEFAULTS[work.kind])} />;
+  return renderPart(
+    context,
+    <EditionsPart work={(await workView(context.var.db, work.id))!} signedIn adding={form} />,
+  );
+});
+
+workEditionRoutes.post('/works/:id/editions', async (context) => {
+  const work = await getWork(context.var.db, context.req.param('id'));
+  if (!work) return context.notFound();
+  const values = await readForm(context);
+  const parsed = parseNewEdition(values, work.kind);
+  if (parsed.ok) await addEdition(context.var.db, work.id, parsed.value.edition, parsed.value.copy);
+  const form = parsed.ok ? undefined : (
+    <NewEditionForm work={work} state={{ values, errors: parsed.errors }} />
+  );
+  const view = (await workView(context.var.db, work.id))!;
+  return renderPart(
+    context,
+    <EditionsPart work={view} signedIn adding={form} />,
+    parsed.ok ? 200 : 422,
+  );
 });
 ```
 
 `apps/web/src/routes/editions.tsx`:
 
 ```tsx
-import { addEdition, deleteEdition, getEdition, getWork, updateEdition } from '@shelf/db';
-import type { EditionDetail, WorkDetail } from '@shelf/db';
+import { deleteEdition, getEdition, updateEdition } from '@shelf/db';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env.ts';
-import { FORM_DEFAULTS } from '../forms/defaults.ts';
 import { editionValues, parseEdition } from '../forms/edition.ts';
 import { readForm } from '../forms/form-data.ts';
-import { parseNewEdition } from '../forms/new-entry.ts';
-import { copySection, editionSection, type FormState } from '../pages/sections.tsx';
-import { renderEntry, seeOther, type Entry } from './entry.tsx';
+import { EditionPart } from '../pages/edition-part.tsx';
+import { EditionEditPart } from '../pages/work-forms.tsx';
+import { renderPart } from '../render.tsx';
+import { fresh } from './entry.tsx';
+import { editionView } from './load.ts';
 
 export const editionRoutes = new Hono<AppEnv>();
 
-const newEdition = (work: WorkDetail, state: FormState): Entry => ({
-  title: `Another edition of ${work.title}`,
-  action: `/manage/works/${work.id}/editions`,
-  cancel: `/works/${work.id}`,
-  sections: [editionSection(work.kind, state), copySection(work.kind, state)],
-});
-
-const editEdition = (edition: EditionDetail, state: FormState): Entry => ({
-  title: 'Edit edition',
-  action: `/manage/editions/${edition.id}`,
-  cancel: `/works/${edition.workId}`,
-  sections: [editionSection(edition.kind, state)],
-});
-
-editionRoutes.get('/works/:id/editions/new', async (context) => {
-  const work = await getWork(context.var.db, context.req.param('id'));
-  if (!work) return context.notFound();
-  return renderEntry(context, newEdition(work, { values: FORM_DEFAULTS[work.kind], errors: {} }));
-});
-
-editionRoutes.post('/works/:id/editions', async (context) => {
-  const work = await getWork(context.var.db, context.req.param('id'));
-  if (!work) return context.notFound();
-  const values = await readForm(context);
-  const parsed = parseNewEdition(values, work.kind);
-  if (!parsed.ok)
-    return renderEntry(context, newEdition(work, { values, errors: parsed.errors }), parsed.errors);
-  await addEdition(context.var.db, work.id, parsed.value.edition, parsed.value.copy);
-  return seeOther(context, `/works/${work.id}`);
+editionRoutes.get('/editions/:id', async (context) => {
+  const edition = await editionView(context.var.db, context.req.param('id'));
+  if (!edition) return context.notFound();
+  return renderPart(context, <EditionPart edition={edition} signedIn />);
 });
 
 editionRoutes.get('/editions/:id/edit', async (context) => {
   const edition = await getEdition(context.var.db, context.req.param('id'));
   if (!edition) return context.notFound();
-  return renderEntry(context, editEdition(edition, { values: editionValues(edition), errors: {} }));
+  return renderPart(
+    context,
+    <EditionEditPart edition={edition} state={fresh(editionValues(edition))} />,
+  );
 });
 
-editionRoutes.post('/editions/:id', async (context) => {
+editionRoutes.put('/editions/:id', async (context) => {
   const edition = await getEdition(context.var.db, context.req.param('id'));
   if (!edition) return context.notFound();
   const values = await readForm(context);
   const parsed = parseEdition(values, edition.kind);
-  if (!parsed.ok)
-    return renderEntry(
-      context,
-      editEdition(edition, { values, errors: parsed.errors }),
-      parsed.errors,
-    );
+  if (!parsed.ok) {
+    const state = { values, errors: parsed.errors };
+    return renderPart(context, <EditionEditPart edition={edition} state={state} />, 422);
+  }
   await updateEdition(context.var.db, edition.id, parsed.value);
-  return seeOther(context, `/works/${edition.workId}`);
+  return renderPart(
+    context,
+    <EditionPart edition={(await editionView(context.var.db, edition.id))!} signedIn />,
+  );
 });
 
-editionRoutes.post('/editions/:id/delete', async (context) => {
-  const edition = await getEdition(context.var.db, context.req.param('id'));
-  if (!edition) return context.notFound();
-  await deleteEdition(context.var.db, edition.id);
-  return seeOther(context, `/works/${edition.workId}`);
+// Answers 200 with nothing; the button's hx-swap="delete" removes the card.
+editionRoutes.delete('/editions/:id', async (context) => {
+  await deleteEdition(context.var.db, context.req.param('id'));
+  return context.body(null, 200);
 });
 ```
 
@@ -4507,38 +5001,28 @@ editionRoutes.post('/editions/:id/delete', async (context) => {
 
 ```tsx
 import { addCopy, deleteCopy, getCopy, getEdition, updateCopy } from '@shelf/db';
-import type { CopyDetail, EditionDetail } from '@shelf/db';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env.ts';
 import { copyValues, parseCopy } from '../forms/copy.ts';
 import { FORM_DEFAULTS } from '../forms/defaults.ts';
 import { readForm } from '../forms/form-data.ts';
-import { copySection, type FormState } from '../pages/sections.tsx';
-import { renderEntry, seeOther, type Entry } from './entry.tsx';
+import { CopyPart } from '../pages/copy-part.tsx';
+import { EditionPart } from '../pages/edition-part.tsx';
+import { CopyEditPart, NewCopyForm } from '../pages/copy-forms.tsx';
+import { renderPart } from '../render.tsx';
+import { toCopyView } from '../views/work.ts';
+import { fresh } from './entry.tsx';
+import { editionView } from './load.ts';
 
 export const copyRoutes = new Hono<AppEnv>();
 
-const editCopy = (copy: CopyDetail, state: FormState): Entry => ({
-  title: `Edit a copy of ${copy.title}`,
-  action: `/manage/copies/${copy.id}`,
-  cancel: `/works/${copy.workId}`,
-  sections: [copySection(copy.kind, state)],
-});
-
-const newCopy = (edition: EditionDetail, state: FormState): Entry => ({
-  title: 'Add a copy',
-  action: `/manage/editions/${edition.id}/copies`,
-  cancel: `/works/${edition.workId}`,
-  sections: [copySection(edition.kind, state)],
-});
-
+// Adding a copy swaps the whole edition card, so its copy count updates too.
 copyRoutes.get('/editions/:id/copies/new', async (context) => {
   const edition = await getEdition(context.var.db, context.req.param('id'));
   if (!edition) return context.notFound();
-  return renderEntry(
-    context,
-    newCopy(edition, { values: FORM_DEFAULTS[edition.kind], errors: {} }),
-  );
+  const form = <NewCopyForm edition={edition} state={fresh(FORM_DEFAULTS[edition.kind])} />;
+  const view = (await editionView(context.var.db, edition.id))!;
+  return renderPart(context, <EditionPart edition={view} signedIn adding={form} />);
 });
 
 copyRoutes.post('/editions/:id/copies', async (context) => {
@@ -4546,36 +5030,63 @@ copyRoutes.post('/editions/:id/copies', async (context) => {
   if (!edition) return context.notFound();
   const values = await readForm(context);
   const parsed = parseCopy(values, edition.kind);
-  if (!parsed.ok)
-    return renderEntry(context, newCopy(edition, { values, errors: parsed.errors }), parsed.errors);
-  await addCopy(context.var.db, edition.id, parsed.value);
-  return seeOther(context, `/works/${edition.workId}`);
+  if (parsed.ok) await addCopy(context.var.db, edition.id, parsed.value);
+  const form = parsed.ok ? undefined : (
+    <NewCopyForm edition={edition} state={{ values, errors: parsed.errors }} />
+  );
+  const view = (await editionView(context.var.db, edition.id))!;
+  return renderPart(
+    context,
+    <EditionPart edition={view} signedIn adding={form} />,
+    parsed.ok ? 200 : 422,
+  );
+});
+
+copyRoutes.get('/copies/:id', async (context) => {
+  const copy = await getCopy(context.var.db, context.req.param('id'));
+  if (!copy) return context.notFound();
+  return renderPart(
+    context,
+    <CopyPart copy={toCopyView(copy)} editionId={copy.editionId} signedIn />,
+  );
 });
 
 copyRoutes.get('/copies/:id/edit', async (context) => {
   const copy = await getCopy(context.var.db, context.req.param('id'));
   if (!copy) return context.notFound();
-  return renderEntry(context, editCopy(copy, { values: copyValues(copy), errors: {} }));
+  return renderPart(context, <CopyEditPart copy={copy} state={fresh(copyValues(copy))} />);
 });
 
-copyRoutes.post('/copies/:id', async (context) => {
+copyRoutes.put('/copies/:id', async (context) => {
   const copy = await getCopy(context.var.db, context.req.param('id'));
   if (!copy) return context.notFound();
   const values = await readForm(context);
   const parsed = parseCopy(values, copy.kind);
-  if (!parsed.ok)
-    return renderEntry(context, editCopy(copy, { values, errors: parsed.errors }), parsed.errors);
+  if (!parsed.ok) {
+    const state = { values, errors: parsed.errors };
+    return renderPart(context, <CopyEditPart copy={copy} state={state} />, 422);
+  }
   await updateCopy(context.var.db, copy.id, parsed.value);
-  return seeOther(context, `/works/${copy.workId}`);
+  const saved = (await getCopy(context.var.db, copy.id))!;
+  return renderPart(
+    context,
+    <CopyPart copy={toCopyView(saved)} editionId={copy.editionId} signedIn />,
+  );
 });
 
-copyRoutes.post('/copies/:id/delete', async (context) => {
+// Answers with the edition card, whose copy count has dropped by one.
+copyRoutes.delete('/copies/:id', async (context) => {
   const copy = await getCopy(context.var.db, context.req.param('id'));
   if (!copy) return context.notFound();
   await deleteCopy(context.var.db, copy.id);
-  return seeOther(context, `/works/${copy.workId}`);
+  const view = (await editionView(context.var.db, copy.editionId))!;
+  return renderPart(context, <EditionPart edition={view} signedIn />);
 });
 ```
+
+Every route follows the same shape: load what it acts on (404 if
+missing), read the form, parse it, then answer with the part that
+belongs in the target; with status 422 and the form when parsing fails.
 
 `apps/web/src/routes/manage.tsx`:
 
@@ -4586,10 +5097,11 @@ import type { AppEnv } from '../env.ts';
 import { CreditRow } from '../components/organisms/credit-rows.tsx';
 import { ManagePage } from '../pages/manage.tsx';
 import { StyleguidePage } from '../pages/styleguide.tsx';
-import { render } from '../render.tsx';
+import { render, renderPart } from '../render.tsx';
 import { copyRoutes } from './copies.tsx';
 import { editionRoutes } from './editions.tsx';
 import { asKind } from './kind.ts';
+import { workEditionRoutes } from './work-editions.tsx';
 import { workRoutes } from './works.tsx';
 
 export const manageRoutes = new Hono<AppEnv>();
@@ -4606,17 +5118,21 @@ manageRoutes.get('/styleguide', (context) =>
 manageRoutes.get('/credit-row', (context) => {
   const kind = asKind(context.req.query('kind'));
   if (!kind) return context.notFound();
-  return render(context, <CreditRow kind={kind} credit={{ name: '', role: '' }} />);
+  return renderPart(context, <CreditRow kind={kind} credit={{ name: '', role: '' }} />);
 });
 
 manageRoutes.route('/', workRoutes);
+manageRoutes.route('/', workEditionRoutes);
 manageRoutes.route('/', editionRoutes);
 manageRoutes.route('/', copyRoutes);
 ```
 
-`requireUser` runs before every route mounted here, including the three
-route files, so none of them checks the session itself; the user is
-always there, which is why they read `context.var.user!`.
+`requireUser` runs before every route mounted here, so none of them
+checks the session itself; the user is always there, which is why they
+read `context.var.user!` and render parts with `signedIn`. When a session
+has expired, `requireUser` answers an htmx request with 401 and
+`HX-Redirect`, so a button pressed on a stale page takes you to sign in
+rather than swapping an error into the card.
 
 `apps/web/src/index.tsx`:
 
@@ -4659,9 +5175,10 @@ The public routes are mounted first; `/manage` paths never match them.
 `app.notFound` replaces Hono's plain-text 404, and `context.notFound()` in
 any route lands there.
 
-### E3. Tests
+### E4. Tests
 
-`apps/web/src/testing.ts` gains a signed-in helper and a form post helper:
+`apps/web/src/testing.ts` gains a signed-in helper and `send`, which makes
+a request the way htmx does:
 
 ```ts
 import { users } from '@shelf/db';
@@ -4703,12 +5220,19 @@ export const signedIn = async (test: TestApp) => {
   return { cookie, origin: ORIGIN };
 };
 
-export const post = (
+// A request as htmx sends it: form-encoded, from this site, marked as htmx.
+export const send = (
   test: TestApp,
+  method: 'POST' | 'PUT' | 'DELETE',
   path: string,
-  form: Record<string, string>,
   headers: Record<string, string>,
-) => test.request(path, { method: 'POST', body: new URLSearchParams(form), headers });
+  form: Record<string, string> = {},
+) =>
+  test.request(path, {
+    method,
+    body: method === 'DELETE' ? undefined : new URLSearchParams(form),
+    headers: { ...headers, 'HX-Request': 'true', 'HX-Request-Type': 'partial' },
+  });
 ```
 
 `apps/web/src/routes/catalogue.test.tsx`:
@@ -4800,27 +5324,26 @@ describe('the public catalogue', () => {
 
   it('stamps the response nonce on every htmx element', async () => {
     // Arrange
-    await createWork(test.db, watchmen());
+    const id = await createWork(test.db, watchmen());
+    const headers = await signedIn(test);
 
     // Act
-    const response = await test.request('/search?q=watch');
+    const response = await test.request(`/works/${id}`, { headers });
 
     // Assert
-    const nonce = /'nonce-([^']+)'/.exec(
-      response.headers.get('content-security-policy') ?? '',
-    )?.[1];
-    const tags =
-      (await response.text()).match(/<[a-z]+ [^>]*hx-[a-z]+(?::[a-z0-9]+)*="[^>]*>/g) ?? [];
-    expect(tags.length).toBeGreaterThan(0);
+    const policy = response.headers.get('content-security-policy') ?? '';
+    const nonce = /'nonce-([^']+)'/.exec(policy)?.[1];
+    const tags = (await response.text()).match(/<[a-z]+ [^>]*\shx-[a-z]+[^>]*>/g) ?? [];
+    expect(tags.length).toBeGreaterThan(5);
     for (const tag of tags) expect(tag).toContain(`hx-nonce="${nonce}"`);
   });
 });
 ```
 
 The last test is the one to keep an eye on: it finds every tag with an
-`hx-` attribute in a rendered page and checks each carries the response's
-nonce. A component that forgets `useHx()` fails here rather than silently
-on your phone.
+`hx-` attribute on a signed-in work page and checks each carries the
+response's nonce. A component that forgets `useHx()` fails here rather than
+silently on your phone.
 
 `apps/web/src/routes/entries.test.tsx`:
 
@@ -4828,7 +5351,7 @@ on your phone.
 import { createWork, getWork } from '@shelf/db';
 import { watchmen } from '@shelf/db/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
-import { createTestApp, post, signedIn } from '../testing.ts';
+import { createTestApp, send, signedIn } from '../testing.ts';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>;
 
@@ -4855,37 +5378,37 @@ describe('adding, editing and deleting', () => {
     await test.dispose();
   });
 
-  it('adds a book by hand and shows it', async () => {
+  it('adds a book and sends htmx to its page', async () => {
     // Arrange
     const form = BOOK;
 
     // Act
-    const response = await post(test, '/manage/works?kind=book', form, headers);
+    const response = await send(test, 'POST', '/manage/works?kind=book', headers, form);
 
     // Assert
-    expect(response.status).toBe(303);
-    const page = await (await test.request(response.headers.get('location')!)).text();
-    expect(page).toContain('The Dispossessed');
-    expect(page).toContain('9780060512750');
-    expect(page).toContain('Second shelf');
+    const location = response.headers.get('hx-location') ?? '';
+    expect(response.status).toBe(200);
+    expect(location).toMatch(/^\/works\//);
+    expect(await (await test.request(location)).text()).toContain('9780060512750');
   });
 
-  it('answers a bad form with 422, the messages and what was typed', async () => {
+  it('answers a bad form with 422 and only the form, keeping what was typed', async () => {
     // Arrange
     const form = { ...BOOK, title: '', isbn13: '12345' };
 
     // Act
-    const response = await post(test, '/manage/works?kind=book', form, headers);
+    const response = await send(test, 'POST', '/manage/works?kind=book', headers, form);
 
     // Assert
     const html = await response.text();
     expect(response.status).toBe(422);
+    expect(html).not.toContain('<!doctype html>');
     expect(html).toContain('Enter the title.');
     expect(html).toContain('An ISBN-13 is 13 digits starting 978 or 979.');
     expect(html).toContain('value="Ursula K. Le Guin"');
   });
 
-  it('saves an edited work', async () => {
+  it('puts an edited work and answers with its card', async () => {
     // Arrange
     const id = await createWork(test.db, watchmen());
     const form = {
@@ -4896,49 +5419,65 @@ describe('adding, editing and deleting', () => {
     };
 
     // Act
-    const response = await post(test, `/manage/works/${id}`, form, headers);
+    const response = await send(test, 'PUT', `/manage/works/${id}`, headers, form);
 
     // Assert
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('id="work"');
     expect((await getWork(test.db, id))?.subtitle).toBe('Absolute edition');
   });
 
-  it('adds a copy, then deletes it', async () => {
+  it('adds a copy, then deletes it, answering with the edition card each time', async () => {
     // Arrange
     const id = await createWork(test.db, watchmen());
     const edition = (await getWork(test.db, id))!.editions[0]!;
-    await post(test, `/manage/editions/${edition.id}/copies`, { location: 'Loft' }, headers);
-    const added = (await getWork(test.db, id))!.editions[0]!.copies[1]!;
+    const added = await send(test, 'POST', `/manage/editions/${edition.id}/copies`, headers, {
+      location: 'Loft',
+    });
+    const copy = (await getWork(test.db, id))!.editions[0]!.copies[1]!;
 
     // Act
-    await post(test, `/manage/copies/${added.id}/delete`, {}, headers);
+    const deleted = await send(test, 'DELETE', `/manage/copies/${copy.id}`, headers);
 
     // Assert
-    expect((await getWork(test.db, id))!.editions[0]!.copies).toHaveLength(1);
+    expect(await added.text()).toContain('2 copies');
+    expect(await deleted.text()).toContain('One copy');
   });
 
-  it('deletes a work with its editions and copies', async () => {
+  it('deletes a work and sends htmx to /manage', async () => {
     // Arrange
     const id = await createWork(test.db, watchmen());
 
     // Act
-    const response = await post(test, `/manage/works/${id}/delete`, {}, headers);
+    const response = await send(test, 'DELETE', `/manage/works/${id}`, headers);
 
     // Assert
-    expect(response.headers.get('location')).toBe('/manage');
+    expect(response.headers.get('hx-location')).toBe('/manage');
     expect(await getWork(test.db, id)).toBeNull();
   });
 
-  it('keeps signed-out visitors away from the forms', async () => {
+  it('refuses a put from another site', async () => {
     // Arrange
-    const form = BOOK;
+    const id = await createWork(test.db, watchmen());
+    const foreign = { ...headers, origin: 'https://evil.example' };
 
     // Act
-    const response = await post(test, '/manage/works?kind=book', form, { origin: headers.origin! });
+    const response = await send(test, 'PUT', `/manage/works/${id}`, foreign, { title: 'Stolen' });
+
+    // Assert
+    expect(response.status).toBe(403);
+  });
+
+  it('sends a signed-out visitor to sign in and back to the add page', async () => {
+    // Arrange
+    const path = '/manage/add?kind=book';
+
+    // Act
+    const response = await test.request(path);
 
     // Assert
     expect(response.status).toBe(303);
-    expect(response.headers.get('location')).toBe('/login?next=%2Fmanage%2Fworks%3Fkind%3Dbook');
+    expect(response.headers.get('location')).toBe('/login?next=%2Fmanage%2Fadd%3Fkind%3Dbook');
   });
 });
 ```
@@ -4951,10 +5490,10 @@ vp check --fix
 vp run ready
 ```
 
-Expect 51 tests: 9 in `catalogue`, 10 in `auth`, 11 in `db` and 21 in
+Expect 52 tests: 9 in `catalogue`, 10 in `auth`, 11 in `db` and 22 in
 `web`, and a build.
 
-### E4. Try it locally
+### E5. Try it locally
 
 ```bash
 # from apps/web
@@ -4965,22 +5504,30 @@ Wrangler lists `0001_search.sql` as applied (`0000` was applied in
 milestone 0). Then, with `vp run dev` running and signed in as your local
 user:
 
-1. Open `/manage`, choose "Add a book", and fill in a title, a person and
-   a role. Press "Add a person"; a third blank row appears without the
-   page reloading.
-2. Type `12345` as the ISBN-13 and save. The page shows "Some fields need
-   another look." and the ISBN message under the field; the address bar
-   still shows `/manage/add?kind=book`, and what you typed is still there.
-3. Correct the ISBN and save. You land on the work page.
-4. "Add a copy", give it a location, save; the edition shows "2 copies".
-5. "Delete copy" asks first; accept, and it shows "One copy".
-6. Open `/search` and type part of the person's name. Results appear after
+1. Open `/manage`, choose "Add a record", and fill in a title, a person and
+   a genre. Press "Add a person"; a third blank row appears.
+2. Type `19888` as the first year, keep the cursor there and save. "Enter
+   2100 or less." appears under the field, the cursor is still in it, and
+   everything else you typed is still there.
+3. Correct the year, add a tracklist line such as `A1 The Rainbow 9:06`,
+   and save. You land on the work page, and the address bar shows it.
+4. "Edit work": the card turns into its form. Add a subtitle and save; the
+   card comes back with it, and the address bar has not changed. Try
+   "Edit work" then "Cancel" too.
+5. "Add a copy", give it a location, save; the edition shows "2 copies".
+6. "Edit copy" on one copy, choose a vinyl grade, save; only that copy
+   changes.
+7. "Delete copy" asks first; accept, and the edition shows "One copy".
+8. "Add an edition", fill in a genre and save; a second edition card
+   appears. "Delete edition" on it asks, then removes it.
+9. Open `/search` and type part of the person's name. Results appear after
    a pause, and the address bar follows what you type.
-7. Open the home page: the kind counts and "Recently added" show the book.
+10. Back on the work page, "Delete work" asks, then takes you to
+    `/manage`.
 
-Check the Console stays free of `[hx-csp] blocked` errors throughout. The
-one red line you will see is `Failed to load resource: … 422` in step 2:
-Chrome logs every 4xx response, and that one is expected.
+Keep DevTools' Console open: it should stay free of `[hx-csp] blocked`
+errors. The red lines you will see are `Failed to load resource: … 422`
+in step 2: Chrome logs every 4xx response, and those are expected.
 
 The milestone 1 smoke script should still pass:
 
@@ -4992,7 +5539,7 @@ vp exec vpx ./scripts/smoke.ts
 ```bash
 # from the repo root
 git add -A
-git commit -m "feat(web): catalogue pages, manual entry and live search"
+git commit -m "feat(web): catalogue pages, in-place editing and live search"
 git push -u origin shelf-0005
 ```
 
@@ -5012,10 +5559,12 @@ check:
 - [ ] A record's tracklist shows sides, positions and times.
 - [ ] A save with a mistake keeps your typing and shows the message under
       the field.
-- [ ] "Delete copy" asks before deleting.
+- [ ] Editing a work, an edition and a copy happens in place, and Cancel
+      puts the card back.
+- [ ] Each delete asks first.
 - [ ] Signed out, the home page shows the counts and recent items, a work
-      page shows no editing controls, and `/manage/add` asks you to sign in
-      and returns you to `/manage/add` afterwards.
+      page shows no editing controls, and `/manage/add?kind=book` asks you
+      to sign in and returns you there afterwards.
 - [ ] Searching for part of a person's name, a tag or a title finds the
       work as you type.
 - [ ] Tapping "4 Records" lists your records A to Z.
@@ -5023,24 +5572,25 @@ check:
 
 ## Troubleshooting
 
-| Symptom                                                                     | Cause                                                                                   | Fix                                                                                                             |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `D1_ERROR: ambiguous column name: id`                                       | A subquery in a one-table select lost its table names                                   | Wrap the `sql` fragment in `nested()` (B3)                                                                      |
-| Every D1 test fails with `SQL code did not contain a statement`             | `0001_search.sql` still holds only drizzle-kit's placeholder comment                    | Fill it (B2)                                                                                                    |
-| `no such table: search`                                                     | `0001_search.sql` is empty, or not applied locally                                      | Fill it (B2), then `vp run migrate --local` in `apps/web`                                                       |
-| `fts5: syntax error` from a search                                          | Raw input reached `match`                                                               | Pass the text through `toMatchQuery` (B4)                                                                       |
-| `TS2769: No overload matches this call` at `db.insert(searchIndex).select(` | A `sql` field in the select has no alias                                                | Add `.as('name')` to each, as in B4                                                                             |
-| Formatting fails with `Unexpected token` at `hx-status:422`                 | JSX attribute names cannot contain `:422`                                               | Spread it from an object, as `EntryForm` does                                                                   |
-| `[hx-csp] blocked <…>: no hx-nonce attribute` in the Console                | An element with `hx-` attributes lacks `{...useHx()}`, or was rendered without `render` | Add the spread; route through `render`; the nonce test in E3 finds the element                                  |
-| Links and forms reload the whole page; nothing is boosted                   | `<main>` lost its nonce, so `hx-csp` stripped `hx-boost`                                | As above; check the route uses `render`                                                                         |
-| Live search never fires                                                     | `changed` in `hx-trigger` on the form                                                   | Use `input delay:300ms, submit` (D5)                                                                            |
-| After a failed save, reloading gives 404                                    | The 422 swap pushed the form's action into the address bar                              | `push:false` in the `hx-status:422` value (D5)                                                                  |
-| A failed save loses what was typed or jumps to the top                      | The 422 was swapped as `innerHTML`                                                      | Check the form carries `hx-status:422="swap:innerMorph push:false"`                                             |
-| `Choose a role for each person.`                                            | A posted role is not one of that kind's roles                                           | Choose a role from the list; roles are per kind (B1)                                                            |
-| Sign-in fields lost their underline                                         | `Input` dropped its own class                                                           | A2                                                                                                              |
-| After signing in from an add page, the kind is gone                         | `next` lost its query string                                                            | A3                                                                                                              |
-| The deploy fails applying `0001_search.sql`                                 | Remote D1 refused the virtual table                                                     | Keep the error and the migration out of `main`; the plan's fallback is `LIKE` queries over `works` and `people` |
-| `wrangler d1 export` fails on the remote database                           | Exports refuse databases with virtual tables                                            | Expected; rely on Time Travel, or drop `search`, export and rebuild, as the plan describes                      |
+| Symptom                                                                     | Cause                                                                                                   | Fix                                                                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `D1_ERROR: ambiguous column name: id`                                       | A subquery in a one-table select lost its table names                                                   | Wrap the `sql` fragment in `nested()` (B3)                                                                      |
+| Every D1 test fails with `SQL code did not contain a statement`             | `0001_search.sql` still holds only drizzle-kit's placeholder comment                                    | Fill it (B2)                                                                                                    |
+| `no such table: search`                                                     | `0001_search.sql` is not applied locally                                                                | `vp run migrate --local` in `apps/web`                                                                          |
+| `fts5: syntax error` from a search                                          | Raw input reached `match`                                                                               | Pass the text through `toMatchQuery` (B4)                                                                       |
+| `TS2769: No overload matches this call` at `db.insert(searchIndex).select(` | A `sql` field in the select has no alias                                                                | Add `.as('name')` to each, as in B4                                                                             |
+| Formatting fails with `Unexpected token` at `hx-status:422`                 | JSX attribute names cannot contain `:422`                                                               | Spread it from an object, as `EntryForm` does                                                                   |
+| `[hx-csp] blocked <…>: no hx-nonce attribute` in the Console                | An element with `hx-` attributes lacks `{...useHx()}`, or was rendered without `render` or `renderPart` | Add the spread; answer through `render` or `renderPart`; the nonce test in E4 finds the element                 |
+| A button does nothing, and the Console says the target was not found        | The part it targets lost its id                                                                         | Check `#work`, `#editions`, `#edition-<id>` and `#copy-<id>` (D5)                                               |
+| A save swaps the whole page into a card                                     | The route answered with `render` and a page instead of `renderPart`                                     | Answer htmx targets with `renderPart`                                                                           |
+| Live search never fires                                                     | `changed` in `hx-trigger` on the form                                                                   | Use `input delay:300ms, submit` (D5)                                                                            |
+| A failed save loses what was typed or the cursor                            | The 422 was swapped as `outerHTML`                                                                      | Check the form carries `hx-status:422="swap:outerMorph"` (D5)                                                   |
+| `Forbidden` (403) on a save                                                 | `csrf()` saw an `Origin` from another site                                                              | Open the app on the same host it saves to                                                                       |
+| `Choose a role for each person.`                                            | A posted role is not one of that kind's roles                                                           | Choose a role from the list; roles are per kind (B1)                                                            |
+| Sign-in fields lost their underline                                         | `Input` dropped its own class                                                                           | A2                                                                                                              |
+| After signing in from an add page, the kind is gone                         | `next` lost its query string                                                                            | A3                                                                                                              |
+| The deploy fails applying `0001_search.sql`                                 | Remote D1 refused the virtual table                                                                     | Keep the error and the migration out of `main`; the plan's fallback is `LIKE` queries over `works` and `people` |
+| `wrangler d1 export` fails on the remote database                           | Exports refuse databases with virtual tables                                                            | Expected; rely on Time Travel, or drop `search`, export and rebuild, as the plan describes                      |
 
 ## What milestone 3 builds on
 
@@ -5052,6 +5602,8 @@ check:
 - `editions.barcode` and `book_editions.isbn13` are indexed and ready for
   the "already own this?" check after a scan.
 - The add page is the place for the barcode field, the camera button and
-  the candidate list; `EntryForm` takes any sections.
+  the candidate list; `EntryForm` takes any sections and any request.
 - `parseTracklist` reads the `A1`-style positions Discogs and MusicBrainz
   return.
+- Milestone 4's loan badges swap into a copy row the same way: a part with
+  an id, and a route that answers with it.
