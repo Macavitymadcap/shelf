@@ -16,8 +16,9 @@ headless Chrome 153 at 360 by 740 pixels was driven through every write:
 adding a record with an extra credit row, a rejected save that kept focus
 and typed input, editing a work, an edition and a copy in place, cancelling
 an edit, adding and deleting copies and editions behind confirmations,
-deleting the work, and live search, with no console errors from the CSP. Two things cannot be tested
-locally: FTS5 on remote D1 and the phone itself, which the gate covers.
+deleting the work, and live search, with no console errors from the CSP.
+Two things cannot be tested locally: FTS5 on remote D1 and the phone itself,
+which the gate covers.
 
 ## How this guide is laid out
 
