@@ -1,0 +1,7 @@
+.work-card__credits {
+  display: grid;
+}
+
+.work-card__description {
+  white-space: pre-line;
+}

@@ -29,3 +29,18 @@ release. Add a tool name to select part of the graph. For example, run
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
+
+# Shelf conventions
+
+Read `docs/revival-plan.md` before changing code; its Package, Code and
+Interface conventions sections are the rules. In short:
+
+- Internal packages export TypeScript source; imports use explicit `.ts`
+  extensions.
+- Source files stay under about 100 lines and functions around 10.
+- Tests mark their Arrange, Act and Assert steps with comments.
+- Every element with an `hx-` attribute spreads `useHx()` for its nonce.
+- Writes go through htmx with the method that fits (`hx-post`, `hx-put`,
+  `hx-delete`) and answer with the fragment that replaces their target;
+  there is no fallback for browsers without JavaScript.
+- British English in copy and documentation.

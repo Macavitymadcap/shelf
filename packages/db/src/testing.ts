@@ -15,3 +15,5 @@ export const createTestDb = async () => {
 
   return { d1: proxy.env.DB, db, dispose: proxy.dispose };
 };
+
+export { spiritOfEden, watchmen } from './fixtures.ts';

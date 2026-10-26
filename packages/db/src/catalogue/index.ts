@@ -1,0 +1,11 @@
+export { addCopy, deleteCopy, updateCopy } from './copies.ts';
+export { createWork } from './create-work.ts';
+export { getCopy, getEdition, type CopyDetail, type EditionDetail } from './edition.ts';
+export { addEdition, deleteEdition, updateEdition } from './editions.ts';
+export { getPerson, type PersonDetail } from './person.ts';
+export { searchWorks, type SearchQuery } from './search.ts';
+export { reindexWork, toMatchQuery } from './search-index.ts';
+export { countByKind, listRecent, type WorkSummary } from './summaries.ts';
+export type * from './types.ts';
+export { deleteWork, updateWork } from './update-work.ts';
+export { getWork, type WorkDetail } from './work.ts';

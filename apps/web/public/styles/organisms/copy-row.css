@@ -1,0 +1,7 @@
+/* Each copy is a short entry under a dashed rule, like a line drawn across the card. */
+.copy-row {
+  display: grid;
+  gap: var(--size-2);
+  padding-block-start: var(--size-2);
+  border-block-start: 1px dashed var(--ink-muted);
+}

@@ -4,6 +4,7 @@ import { basename } from 'node:path';
 
 const caslon = 'node_modules/@fontsource/libre-caslon-text/files/libre-caslon-text-latin';
 const courier = 'node_modules/@fontsource/courier-prime/files/courier-prime-latin';
+const htmx = 'node_modules/htmx.org/dist';
 
 const assets: Record<string, string[]> = {
   // Only the Open Props groups the stylesheets use; see public/styles/app.css.
@@ -17,6 +18,8 @@ const assets: Record<string, string[]> = {
     `${courier}-400-normal.woff2`,
     `${courier}-700-normal.woff2`,
   ],
+  // htmx and the one extension in use; see src/components/templates/page.tsx
+  'public/vendor/htmx': [`${htmx}/htmx.min.js`, `${htmx}/ext/hx-csp.min.js`],
 };
 
 for (const [dir, files] of Object.entries(assets)) {

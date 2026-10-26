@@ -1,0 +1,11 @@
+.search-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--size-2) var(--size-3);
+  align-items: end;
+}
+
+/* The text box takes the whole first row; kind and the button share the second. */
+.search-form__text {
+  grid-column: 1 / -1;
+}

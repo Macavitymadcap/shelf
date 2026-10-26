@@ -10,18 +10,24 @@ export type AuthVariables = { db: Db; user: SessionUser | null };
 export const loadUser = createMiddleware<{ Variables: AuthVariables }>(async (context, next) => {
   const token = readSessionCookie(context);
   const found = token ? await findSession(context.var.db, token) : null;
+
   context.set('user', found?.user ?? null);
   if (token && found && isStale(found.session.lastSeenAt, new Date())) {
     await touchSession(context.var.db, found.session.id);
     writeSessionCookie(context, token);
   }
+
   await next();
 });
 
 export const requireUser = createMiddleware<{ Variables: AuthVariables }>(async (context, next) => {
   if (context.var.user) return next();
-  const target = `/login?next=${encodeURIComponent(context.req.path)}`;
+
+  const { pathname, search } = new URL(context.req.url);
+  const target = `/login?next=${encodeURIComponent(pathname + search)}`;
+
   if (!context.req.header('HX-Request')) return context.redirect(target, 303);
+
   context.header('HX-Redirect', target);
 
   return context.body(null, 401);

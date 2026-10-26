@@ -16,8 +16,10 @@ catalog:
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   hono: ^4.13.13
+  htmx.org: 4.0.0
   open-props: ^1.7.23
   typescript: ^7.0.2
+  valibot: ^1.5.0
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
   wrangler: ^4.151.1

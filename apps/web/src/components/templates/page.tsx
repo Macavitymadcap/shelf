@@ -1,11 +1,26 @@
-import type { FC, PropsWithChildren } from 'hono/jsx';
+import { useContext, type FC, type PropsWithChildren } from 'hono/jsx';
 import { raw } from 'hono/html';
 import type { SessionUser } from '@shelf/auth';
+import { NonceContext, useHx } from '../../nonce.ts';
 import { SiteHeader } from '../organisms/site-header.tsx';
 
 type PageProps = PropsWithChildren<{ title: string; user: SessionUser | null }>;
 
 const FONTS = ['libre-caslon-text-latin-400-normal', 'courier-prime-latin-400-normal'];
+
+// Only hx-csp may register, and htmx's own indicator styles are not needed.
+const HTMX_CONFIG = 'extensions:hx-csp, includeIndicatorCSS:false';
+
+const Scripts: FC = () => {
+  const nonce = useContext(NonceContext);
+  return (
+    <>
+      <meta name="htmx-config" content={HTMX_CONFIG} />
+      <script nonce={nonce} src="vendor/htmx/htmx.min.js" defer />
+      <script nonce={nonce} src="/vendor/htmx/hx-csp.min.js" defer />
+    </>
+  );
+};
 
 const Head: FC<{ title: string }> = ({ title }) => (
   <head>
@@ -26,6 +41,7 @@ const Head: FC<{ title: string }> = ({ title }) => (
       />
     ))}
     <link rel="stylesheet" href="/styles/app.css" />
+    <Scripts />
   </head>
 );
 
@@ -36,7 +52,9 @@ export const Page: FC<PageProps> = ({ title, user, children }) => (
       <Head title={title} />
       <body class="page">
         <SiteHeader user={user} />
-        <main class="page__main">{children}</main>
+        <main class="page__main" hx-boost:inherited="true" {...useHx()}>
+          {children}
+        </main>
       </body>
     </html>
   </>

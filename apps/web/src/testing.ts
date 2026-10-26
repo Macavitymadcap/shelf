@@ -21,3 +21,32 @@ export const addUser = async (test: Awaited<ReturnType<typeof createTestApp>>) =
 
 export const loginForm = (username: string, password: string) =>
   new URLSearchParams({ username, password, next: '/manage' });
+
+type TestApp = Awaited<ReturnType<typeof createTestApp>>;
+
+// Adds the test user, signs in and returns headers that carry the session.
+export const signedIn = async (test: TestApp) => {
+  await addUser(test);
+  const body = loginForm('dan', PASSWORD);
+  const response = await test.request('/login', {
+    method: 'POST',
+    body,
+    headers: { origin: ORIGIN },
+  });
+  const cookie = (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+  return { cookie, origin: ORIGIN };
+};
+
+// A request as htmx sends it: form-encoded, from this site, marked as htmx.
+export const send = (
+  test: TestApp,
+  method: 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  headers: Record<string, string>,
+  form: Record<string, string> = {},
+) =>
+  test.request(path, {
+    method,
+    body: method === 'DELETE' ? undefined : new URLSearchParams(form),
+    headers: { ...headers, 'HX-Request': 'true', 'HX-Request-Type': 'partial' },
+  });

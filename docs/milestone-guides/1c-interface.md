@@ -2,7 +2,7 @@
 
 This guide restyles the pages milestone 1 built and sets up the component
 structure milestone 2 will grow. It starts after Checkpoint B of
-`docs/1-auth.md`; it can land before or after the gate.
+`docs/milestone-guides/1-auth.md`; it can land before or after the gate.
 
 The direction is a library card catalogue: warm card stock on a cool grey
 desk, a red rule under each card's heading, faint blue ruled lines under
@@ -48,7 +48,7 @@ apps/web/
 │       │                                 sign-in-form, site-header
 │       └── templates/page.css        C6
 └── src/components/
-    ├── class-names.ts                C3
+    ├── join-class-names.ts                C3
     ├── atoms/*.tsx                   C3
     ├── molecules/*.tsx               C4
     ├── organisms/*.tsx               C5
@@ -455,11 +455,11 @@ mkdir -p public/styles/{atoms,molecules,organisms,templates}
 their own. One small helper does the joining, and it sits beside the level
 folders because every level may use it:
 
-`apps/web/src/components/class-names.ts`:
+`apps/web/src/components/join-class-names.ts`:
 
 ```ts
-// Joins class names, skipping empty ones: cx('field', props.class).
-export const cx = (...names: (string | undefined)[]) => names.filter(Boolean).join(' ');
+// Joins class names, skipping empty ones: joinClassNames('field', props.class).
+export const joinClassNames = (...names: (string | undefined)[]) => names.filter(Boolean).join(' ');
 ```
 
 ### The atoms
@@ -622,13 +622,13 @@ screen reader announces a failed sign-in.
 ```tsx
 import type { FC } from 'hono/jsx';
 import { Input, type InputProps } from '../atoms/input.tsx';
-import { cx } from '../class-names.ts';
+import { joinClassNames } from '../join-class-names.ts';
 
 // `class` goes on the wrapper, so a parent can place the field without reaching into it.
 type FieldProps = Omit<InputProps, 'class'> & { label: string; name: string; class?: string };
 
 export const Field: FC<FieldProps> = ({ label, name, class: className, ...input }) => (
-  <div class={cx('field', className)}>
+  <div class={joinClassNames('field', className)}>
     <label class="field__label" for={`field-${name}`}>
       {label}
     </label>
@@ -739,7 +739,7 @@ the whole field.
 
 ```tsx
 import type { Child, FC, PropsWithChildren } from 'hono/jsx';
-import { cx } from '../class-names.ts';
+import { joinClassNames } from '../join-class-names.ts';
 
 type IndexCardProps = PropsWithChildren<{
   title: Child;
@@ -753,7 +753,7 @@ export const IndexCard: FC<IndexCardProps> = (props) => {
   const { title, corner, byline, level = 2, children } = props;
   const Heading = level === 1 ? 'h1' : 'h2';
   return (
-    <article class={cx('index-card', props.class)}>
+    <article class={joinClassNames('index-card', props.class)}>
       {corner && <p class="index-card__corner">{corner}</p>}
       <header class="index-card__header">
         {byline && <p>{byline}</p>}

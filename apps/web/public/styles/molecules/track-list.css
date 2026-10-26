@@ -1,0 +1,19 @@
+/* Position, title and time on one ruled line each, like the detail list. */
+.track-list {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--rule-blue) calc(var(--line) - 1px) var(--line)
+  );
+}
+
+.track-list__track {
+  display: grid;
+  grid-template-columns: 3ch 1fr auto;
+  gap: var(--size-2);
+}
+
+.track-list__position,
+.track-list__time {
+  color: var(--ink-muted);
+}
