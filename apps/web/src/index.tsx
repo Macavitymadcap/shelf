@@ -3,11 +3,12 @@ import { csrf } from 'hono/csrf';
 import { loadUser } from '@shelf/auth';
 import { createDb } from '@shelf/db';
 import type { AppEnv } from './env.ts';
-import { HomePage } from './pages/home.tsx';
+import { NotFoundPage } from './pages/not-found.tsx';
+import { render } from './render.tsx';
 import { authRoutes } from './routes/auth.tsx';
+import { catalogueRoutes } from './routes/catalogue.tsx';
 import { manageRoutes } from './routes/manage.tsx';
 import { securityHeaders } from './security.ts';
-import { render } from './render.tsx';
 
 const app = new Hono<AppEnv>();
 
@@ -19,8 +20,13 @@ app.use(async (context, next) => {
 });
 app.use(loadUser);
 
-app.get('/', (context) => render(context, <HomePage user={context.var.user} />));
+app.route('/', catalogueRoutes);
 app.route('/', authRoutes);
 app.route('/manage', manageRoutes);
+
+app.notFound((context) => {
+  const page = <NotFoundPage user={context.var.user ?? null} />;
+  return render(context, page, { status: 404 });
+});
 
 export default app;
