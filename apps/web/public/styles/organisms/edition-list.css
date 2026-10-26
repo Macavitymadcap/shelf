@@ -1,0 +1,4 @@
+.edition-list {
+  display: grid;
+  gap: var(--size-4);
+}

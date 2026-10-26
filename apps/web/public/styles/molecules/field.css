@@ -6,3 +6,14 @@
   color: var(--ink-muted);
   font-size: var(--font-size-0);
 }
+
+.field__hint {
+  color: var(--ink-muted);
+  font-size: var(--font-size-0);
+}
+
+.field__error {
+  color: var(--rule-red);
+  font-size: var(--font-size-0);
+  font-weight: 700;
+}

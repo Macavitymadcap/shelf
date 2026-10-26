@@ -1,0 +1,17 @@
+.kind-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-1) var(--size-4);
+}
+
+.kind-counts__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  min-block-size: var(--tap);
+}
+
+.kind-counts__total {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3);
+}

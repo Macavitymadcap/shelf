@@ -1,0 +1,22 @@
+/* Drawn like the typed blank in input.css, with the browser's own arrow. */
+.select {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--tap);
+  padding: var(--size-1) 0;
+  border: 0;
+  border-block-end: 1px solid var(--ink-muted);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+
+  &:focus-visible {
+    outline: none;
+    border-block-end: 2px solid var(--focus);
+  }
+
+  &[aria-invalid='true'] {
+    border-block-end-color: var(--rule-red);
+  }
+}

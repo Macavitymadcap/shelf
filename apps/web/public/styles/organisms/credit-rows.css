@@ -1,0 +1,26 @@
+.credit-rows {
+  display: grid;
+  gap: var(--size-2);
+  justify-items: start;
+}
+
+.credit-rows__list {
+  display: grid;
+  gap: var(--size-3);
+  justify-self: stretch;
+}
+
+/* Name and role side by side once there is room; stacked on a phone. */
+.credit-rows__row {
+  display: grid;
+  gap: var(--size-2);
+
+  @media (width >= 30rem) {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.credit-rows__error {
+  color: var(--rule-red);
+  font-weight: 700;
+}

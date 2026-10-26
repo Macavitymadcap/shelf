@@ -7,13 +7,15 @@ type IndexCardProps = PropsWithChildren<{
   byline?: string;
   level?: 1 | 2;
   class?: string;
+  // Lets htmx target this card, for example to swap it for its edit form.
+  id?: string;
 }>;
 
 export const IndexCard: FC<IndexCardProps> = (props) => {
   const { title, corner, byline, level = 2, children } = props;
   const Heading = level === 1 ? 'h1' : 'h2';
   return (
-    <article class={joinClassNames('index-card', props.class)}>
+    <article class={joinClassNames('index-card', props.class)} id={props.id}>
       {corner && <p class="index-card__corner">{corner}</p>}
       <header class="index-card__header">
         {byline && <p>{byline}</p>}

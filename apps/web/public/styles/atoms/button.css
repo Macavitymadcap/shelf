@@ -10,6 +10,7 @@
   color: var(--card);
   font: inherit;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 
   &:active {
@@ -24,6 +25,13 @@
     font-weight: 400;
     text-decoration: underline var(--rule-red) 1px;
     text-underline-offset: 0.2em;
+  }
+
+  &[data-variant='danger'] {
+    padding-inline: var(--size-3);
+    border-color: var(--rule-red);
+    background: transparent;
+    color: var(--rule-red);
   }
 
   @media (prefers-reduced-motion: reduce) {

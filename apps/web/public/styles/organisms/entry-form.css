@@ -1,0 +1,26 @@
+.entry-form {
+  display: grid;
+  gap: var(--size-5);
+}
+
+/* Each section reads as a block of the card under its own small heading. */
+.entry-form__section {
+  display: grid;
+  gap: var(--size-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.entry-form__legend {
+  margin-block-end: var(--size-2);
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3);
+}
+
+.entry-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2);
+}

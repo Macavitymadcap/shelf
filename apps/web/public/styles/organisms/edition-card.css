@@ -1,0 +1,8 @@
+.edition-card__heading {
+  font-size: var(--font-size-2);
+}
+
+.edition-card__copies {
+  display: grid;
+  gap: var(--size-3);
+}

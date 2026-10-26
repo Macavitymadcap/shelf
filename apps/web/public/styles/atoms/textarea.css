@@ -1,0 +1,26 @@
+/* Several ruled lines to write on, matching the detail list's blue rules. */
+.textarea {
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--ink-muted);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--rule-blue) calc(var(--line) - 1px) var(--line)
+  );
+  color: var(--ink);
+  font: inherit;
+  line-height: var(--line);
+  resize: vertical;
+
+  &:focus-visible {
+    outline: none;
+    border-block-end: 2px solid var(--focus);
+  }
+
+  &[aria-invalid='true'] {
+    border-block-end-color: var(--rule-red);
+  }
+}
