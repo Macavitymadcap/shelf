@@ -15,14 +15,17 @@
   },
   "dependencies": {
     "@shelf/auth": "catalog:",
+    "@shelf/catalogue": "catalog:",
     "@shelf/db": "catalog:",
-    "hono": "catalog:"
+    "hono": "catalog:",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "catalog:",
     "@fontsource/courier-prime": "catalog:",
     "@fontsource/libre-caslon-text": "catalog:",
     "@types/node": "catalog:",
+    "htmx.org": "catalog:",
     "open-props": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

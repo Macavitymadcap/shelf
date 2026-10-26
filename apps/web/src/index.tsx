@@ -7,6 +7,7 @@ import { HomePage } from './pages/home.tsx';
 import { authRoutes } from './routes/auth.tsx';
 import { manageRoutes } from './routes/manage.tsx';
 import { securityHeaders } from './security.ts';
+import { render } from './render.tsx';
 
 const app = new Hono<AppEnv>();
 
@@ -18,7 +19,7 @@ app.use(async (context, next) => {
 });
 app.use(loadUser);
 
-app.get('/', (context) => context.html(<HomePage user={context.var.user} />));
+app.get('/', (context) => render(context, <HomePage user={context.var.user} />));
 app.route('/', authRoutes);
 app.route('/manage', manageRoutes);
 

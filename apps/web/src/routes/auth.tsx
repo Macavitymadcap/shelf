@@ -9,6 +9,8 @@ import {
 } from '@shelf/auth';
 import type { AppEnv } from '../env.ts';
 import { LoginPage } from '../pages/login.tsx';
+import { render } from '../render.tsx';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
@@ -17,7 +19,9 @@ export const authRoutes = new Hono<AppEnv>();
 authRoutes.get('/login', (context) => {
   const next = safeNext(context.req.query('next'));
 
-  return context.var.user ? context.redirect(next, 303) : context.html(<LoginPage next={next} />);
+  return context.var.user
+    ? context.redirect(next, 303)
+    : render(context, <LoginPage next={next} />);
 });
 
 authRoutes.post('/login', async (context) => {
@@ -36,9 +40,11 @@ authRoutes.post('/login', async (context) => {
     writeSessionCookie(context, result.token);
     return context.redirect(next, 303);
   }
-  const page = <LoginPage next={next} username={username} error={result.reason} />;
 
-  return context.html(page, result.reason === 'locked' ? 429 : 401);
+  const page = <LoginPage next={next} username={username} error={result.reason} />;
+  const status = { status: (result.reason === 'locked' ? 429 : 401) as ContentfulStatusCode };
+
+  return render(context, page, status);
 });
 
 authRoutes.post('/logout', async (context) => {
